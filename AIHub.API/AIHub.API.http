@@ -1,0 +1,6 @@
+@AIHub.API_HostAddress = http://localhost:5006
+
+GET {{AIHub.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
