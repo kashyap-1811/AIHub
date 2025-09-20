@@ -31,14 +31,23 @@ const ChatPage = () => {
 
   // Handle session selection from URL
   useEffect(() => {
-    if (sessionId && chatSessions.length > 0) {
-      const session = chatSessions.find(s => s.id === parseInt(sessionId));
-      if (session) {
-        setCurrentSession(session);
-        addActiveSession(session);
+    if (sessionId) {
+      if (chatSessions.length === 0) {
+        // Sessions are still loading, show loading state
+        setCurrentSession({ id: sessionId, loading: true });
+      } else {
+        // Sessions loaded, try to find the session
+        const session = chatSessions.find(s => s.id === sessionId);
+        if (session) {
+          setCurrentSession(session);
+          addActiveSession(session);
+        } else {
+          // Session not found, redirect to home
+          navigate('/');
+        }
       }
     }
-  }, [sessionId, chatSessions, addActiveSession]);
+  }, [sessionId, chatSessions, addActiveSession, navigate]);
 
   // Handle new chat creation
   const handleNewChat = (session) => {

@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
 import SupportPage from './pages/SupportPage';
+import MarkdownDemo from './components/MarkdownDemo';
 import LoadingSpinner from './components/LoadingSpinner';
 
 function ProtectedRoute({ children }) {
@@ -69,6 +70,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <SupportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/demo"
+          element={
+            <ProtectedRoute>
+              <MarkdownDemo />
             </ProtectedRoute>
           }
         />

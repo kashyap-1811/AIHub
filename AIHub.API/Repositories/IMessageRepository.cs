@@ -4,9 +4,9 @@ namespace AIHub.API.Repositories
 {
     public interface IMessageRepository
     {
-        Task<IEnumerable<Message>> GetByChatSessionIdAsync(int chatSessionId);
+        Task<IEnumerable<Message>> GetByChatSessionIdAsync(string chatSessionId);
         Task<Message> CreateAsync(Message message);
         Task<Message> UpdateAsync(Message message);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(string id);
     }
 }

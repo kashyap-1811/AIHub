@@ -13,7 +13,7 @@ namespace AIHub.API.Repositories
             _context = context;
         }
 
-        public async Task<User?> GetByIdAsync(int id)
+        public async Task<User?> GetByIdAsync(string id)
         {
             return await _context.Users
                 .Include(u => u.ApiKeys)
@@ -60,7 +60,7 @@ namespace AIHub.API.Repositories
             return user;
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(string id)
         {
             var user = await _context.Users.FindAsync(id);
             if (user != null)

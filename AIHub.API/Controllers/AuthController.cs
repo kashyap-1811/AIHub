@@ -82,7 +82,7 @@ namespace AIHub.API.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
                 var username = User.FindFirst(System.Security.Claims.ClaimTypes.Name)!.Value;
                 var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)!.Value;
                 

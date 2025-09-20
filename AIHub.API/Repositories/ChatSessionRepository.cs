@@ -13,14 +13,14 @@ namespace AIHub.API.Repositories
             _context = context;
         }
 
-        public async Task<ChatSession?> GetByIdAsync(int id)
+        public async Task<ChatSession?> GetByIdAsync(string id)
         {
             return await _context.ChatSessions
                 .Include(cs => cs.Messages)
                 .FirstOrDefaultAsync(cs => cs.Id == id);
         }
 
-        public async Task<IEnumerable<ChatSession>> GetByUserIdAsync(int userId)
+        public async Task<IEnumerable<ChatSession>> GetByUserIdAsync(string userId)
         {
             return await _context.ChatSessions
                 .Where(cs => cs.UserId == userId)
@@ -43,7 +43,7 @@ namespace AIHub.API.Repositories
             return chatSession;
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(string id)
         {
             var chatSession = await _context.ChatSessions.FindAsync(id);
             if (chatSession != null)

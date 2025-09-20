@@ -13,13 +13,13 @@ namespace AIHub.API.Repositories
             _context = context;
         }
 
-        public async Task<ApiKey?> GetByUserAndServiceAsync(int userId, string serviceName)
+        public async Task<ApiKey?> GetByUserAndServiceAsync(string userId, string serviceName)
         {
             return await _context.ApiKeys
                 .FirstOrDefaultAsync(ak => ak.UserId == userId && ak.ServiceName == serviceName);
         }
 
-        public async Task<IEnumerable<ApiKey>> GetByUserIdAsync(int userId)
+        public async Task<IEnumerable<ApiKey>> GetByUserIdAsync(string userId)
         {
             return await _context.ApiKeys
                 .Where(ak => ak.UserId == userId)
@@ -41,7 +41,7 @@ namespace AIHub.API.Repositories
             return apiKey;
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(string id)
         {
             var apiKey = await _context.ApiKeys.FindAsync(id);
             if (apiKey != null)

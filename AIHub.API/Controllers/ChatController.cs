@@ -14,15 +14,18 @@ namespace AIHub.API.Controllers
         private readonly IChatSessionRepository _chatSessionRepository;
         private readonly IMessageRepository _messageRepository;
         private readonly IApiKeyRepository _apiKeyRepository;
+        private readonly IContextService _contextService;
 
         public ChatController(
             IChatSessionRepository chatSessionRepository,
             IMessageRepository messageRepository,
-            IApiKeyRepository apiKeyRepository)
+            IApiKeyRepository apiKeyRepository,
+            IContextService contextService)
         {
             _chatSessionRepository = chatSessionRepository;
             _messageRepository = messageRepository;
             _apiKeyRepository = apiKeyRepository;
+            _contextService = contextService;
         }
 
         [HttpGet("sessions")]
@@ -30,7 +33,7 @@ namespace AIHub.API.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
                 var sessions = await _chatSessionRepository.GetByUserIdAsync(userId);
                 
                 var result = sessions.Select(s => new
@@ -56,7 +59,7 @@ namespace AIHub.API.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
                 
                 var session = new ChatSession
                 {
@@ -82,11 +85,11 @@ namespace AIHub.API.Controllers
         }
 
         [HttpGet("sessions/{id}/messages")]
-        public async Task<IActionResult> GetMessages(int id)
+        public async Task<IActionResult> GetMessages(string id)
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
                 var session = await _chatSessionRepository.GetByIdAsync(id);
                 
                 if (session == null || session.UserId != userId)
@@ -114,11 +117,11 @@ namespace AIHub.API.Controllers
         }
 
         [HttpPost("sessions/{id}/messages")]
-        public async Task<IActionResult> SendMessage(int id, [FromBody] SendMessageRequest request)
+        public async Task<IActionResult> SendMessage(string id, [FromBody] SendMessageRequest request)
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
                 var session = await _chatSessionRepository.GetByIdAsync(id);
                 
                 if (session == null || session.UserId != userId)
@@ -136,6 +139,18 @@ namespace AIHub.API.Controllers
                 };
                 await _messageRepository.CreateAsync(userMessage);
 
+                // Get recent messages for context
+                var recentMessages = (await _messageRepository.GetByChatSessionIdAsync(id))
+                    .OrderBy(m => m.CreatedAt)
+                    .TakeLast(15)
+                    .ToList();
+
+                // Update context summary
+                await _contextService.UpdateContextSummaryAsync(id, recentMessages);
+
+                // Get context summary for AI
+                var contextSummary = await _contextService.GetContextSummaryAsync(id);
+
                 // Get API key for the service (optional)
                 var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, request.ServiceName);
                 string response;
@@ -150,14 +165,19 @@ namespace AIHub.API.Controllers
                     // API key exists - use it
                     var plainTextKey = apiKey.EncryptedKey; // No decryption needed
                     
-                    // Get AI service and send message
+                    // Get AI service and send message with context
                     var aiService = GetAIService(request.ServiceName);
                     if (aiService == null)
                     {
                         return BadRequest(new { message = "Invalid service name" });
                     }
 
-                    response = await aiService.SendMessageAsync(request.Message, plainTextKey);
+                    // Prepare message with context
+                    var messageWithContext = string.IsNullOrEmpty(contextSummary) 
+                        ? request.Message 
+                        : $"{contextSummary}\n\nUser: {request.Message}";
+
+                    response = await aiService.SendMessageAsync(messageWithContext, plainTextKey);
                 }
 
                 // Save AI response
@@ -205,7 +225,7 @@ namespace AIHub.API.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
                 var responses = new List<object>();
 
                 foreach (var serviceName in request.ServiceNames)
@@ -247,11 +267,11 @@ namespace AIHub.API.Controllers
         }
 
         [HttpDelete("sessions/{id}")]
-        public async Task<IActionResult> DeleteChatSession(int id)
+        public async Task<IActionResult> DeleteChatSession(string id)
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
                 var session = await _chatSessionRepository.GetByIdAsync(id);
                 
                 if (session == null || session.UserId != userId)

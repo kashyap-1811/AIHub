@@ -4,10 +4,13 @@ namespace AIHub.API.Models
 {
     public class ApiKey
     {
-        public int Id { get; set; }
+        [Key]
+        [MaxLength(36)]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
         
         [Required]
-        public int UserId { get; set; }
+        [MaxLength(36)]
+        public string UserId { get; set; } = string.Empty;
         
         [Required]
         [MaxLength(50)]

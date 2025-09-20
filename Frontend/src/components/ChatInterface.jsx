@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useChat } from '../contexts/ChatContext';
 import { Send, X, Bot, User, Loader2 } from 'lucide-react';
+import MarkdownRenderer from './MarkdownRenderer';
 
 const ChatInterface = ({ session, onClose }) => {
   const { sendMessage, messages, sendingMessage, fetchMessages } = useChat();
@@ -18,10 +19,47 @@ const ChatInterface = ({ session, onClose }) => {
 
   // Load messages when session changes
   useEffect(() => {
-    if (session.id) {
+    if (session.id && !session.loading) {
       fetchMessages(session.id);
     }
-  }, [session.id, fetchMessages]);
+  }, [session.id, session.loading, fetchMessages]);
+
+  // Show loading state if session is still loading
+  if (session.loading) {
+    return (
+      <div className="d-flex flex-column h-100">
+        {/* Header */}
+        <div className="chat-header d-flex align-items-center justify-content-between p-3 border-bottom">
+          <div className="d-flex align-items-center">
+            <div className="me-3">
+              <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }}>
+                <Bot size={16} className="text-white" />
+              </div>
+            </div>
+            <div>
+              <h6 className="mb-0">Loading Chat...</h6>
+              <small className="text-muted">Please wait while we load your conversation</small>
+            </div>
+          </div>
+          <button 
+            className="btn btn-outline-secondary btn-sm"
+            onClick={onClose}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Loading Content */}
+        <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+          <div className="text-center">
+            <Loader2 size={32} className="text-primary mb-3" style={{ animation: 'spin 1s linear infinite' }} />
+            <h5 className="text-primary mb-2">Loading Chat Session</h5>
+            <p className="text-muted">Please wait while we restore your conversation...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -143,9 +181,16 @@ const ChatInterface = ({ session, onClose }) => {
 
                   {/* Message Content */}
                   <div className={`p-3 rounded ${message.role === 'user' ? 'bg-primary text-white' : 'bg-secondary text-primary'}`}>
-                    <div className="message-content" style={{ whiteSpace: 'pre-wrap' }}>
-                      {message.content}
-                    </div>
+                    {message.role === 'user' ? (
+                      <div className="message-content" style={{ whiteSpace: 'pre-wrap' }}>
+                        {message.content}
+                      </div>
+                    ) : (
+                      <MarkdownRenderer 
+                        content={message.content} 
+                        className="message-content"
+                      />
+                    )}
                     <div className={`small mt-2 ${message.role === 'user' ? 'text-white-50' : 'text-muted'}`}>
                       {new Date(message.timestamp || message.createdAt).toLocaleTimeString()}
                     </div>

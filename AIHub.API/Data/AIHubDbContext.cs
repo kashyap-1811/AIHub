@@ -13,6 +13,7 @@ namespace AIHub.API.Data
         public DbSet<ApiKey> ApiKeys { get; set; }
         public DbSet<ChatSession> ChatSessions { get; set; }
         public DbSet<Message> Messages { get; set; }
+        public DbSet<ContextSummary> ContextSummaries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -57,6 +58,18 @@ namespace AIHub.API.Data
                       .WithMany(e => e.Messages)
                       .HasForeignKey(e => e.ChatSessionId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ContextSummary configuration
+            modelBuilder.Entity<ContextSummary>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.ChatSession)
+                      .WithMany()
+                      .HasForeignKey(e => e.ChatSessionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasIndex(e => e.ChatSessionId).IsUnique();
             });
         }
     }

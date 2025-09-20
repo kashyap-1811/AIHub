@@ -20,10 +20,10 @@ namespace AIHub.API.Controllers
             _serviceProvider = serviceProvider;
         }
 
-        private int? GetUserId()
+        private string? GetUserId()
         {
             var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            return claim != null && int.TryParse(claim.Value, out var id) ? id : null;
+            return claim?.Value;
         }
 
         [HttpGet]
@@ -32,7 +32,7 @@ namespace AIHub.API.Controllers
             var userId = GetUserId();
             if (userId == null) return Unauthorized(new { message = "User not authenticated" });
 
-            var apiKeys = await _apiKeyRepository.GetByUserIdAsync(userId.Value);
+            var apiKeys = await _apiKeyRepository.GetByUserIdAsync(userId);
 
             var result = apiKeys.Select(ak => new
             {
@@ -59,7 +59,7 @@ namespace AIHub.API.Controllers
             if (string.IsNullOrWhiteSpace(request.ServiceName))
                 return BadRequest(new { message = "Service name cannot be empty" });
 
-            var existingApiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId.Value, request.ServiceName);
+            var existingApiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, request.ServiceName);
 
             if (existingApiKey != null)
             {
@@ -71,7 +71,7 @@ namespace AIHub.API.Controllers
             {
                 var apiKey = new ApiKey
                 {
-                    UserId = userId.Value,
+                    UserId = userId,
                     ServiceName = request.ServiceName,
                     EncryptedKey = request.ApiKey, // ⚠️ still plain text
                     CreatedAt = DateTime.UtcNow,
@@ -89,7 +89,7 @@ namespace AIHub.API.Controllers
             var userId = GetUserId();
             if (userId == null) return Unauthorized(new { message = "User not authenticated" });
 
-            var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId.Value, serviceName);
+            var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, serviceName);
             if (apiKey == null)
                 return NotFound(new { message = "API key not found" });
 
@@ -103,7 +103,7 @@ namespace AIHub.API.Controllers
             var userId = GetUserId();
             if (userId == null) return Unauthorized(new { message = "User not authenticated" });
 
-            var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId.Value, request.ServiceName);
+            var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, request.ServiceName);
             if (apiKey == null)
                 return NotFound(new { message = "API key not found" });
 
@@ -121,11 +121,11 @@ namespace AIHub.API.Controllers
             var userId = GetUserId();
             if (userId == null) return Unauthorized(new { message = "User not authenticated" });
 
-            var allKeys = await _apiKeyRepository.GetByUserIdAsync(userId.Value);
+            var allKeys = await _apiKeyRepository.GetByUserIdAsync(userId);
 
             var testKey = new ApiKey
             {
-                UserId = userId.Value,
+                UserId = userId,
                 ServiceName = "TEST_SERVICE",
                 EncryptedKey = "test-key-123",
                 CreatedAt = DateTime.UtcNow,
@@ -133,7 +133,7 @@ namespace AIHub.API.Controllers
             };
 
             var created = await _apiKeyRepository.CreateAsync(testKey);
-            var retrieved = await _apiKeyRepository.GetByUserAndServiceAsync(userId.Value, "TEST_SERVICE");
+            var retrieved = await _apiKeyRepository.GetByUserAndServiceAsync(userId, "TEST_SERVICE");
             await _apiKeyRepository.DeleteAsync(created.Id);
 
             return Ok(new

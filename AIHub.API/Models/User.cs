@@ -4,7 +4,9 @@ namespace AIHub.API.Models
 {
     public class User
     {
-        public int Id { get; set; }
+        [Key]
+        [MaxLength(36)]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
         
         [Required]
         [MaxLength(100)]

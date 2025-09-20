@@ -4,10 +4,13 @@ namespace AIHub.API.Models
 {
     public class Message
     {
-        public int Id { get; set; }
+        [Key]
+        [MaxLength(36)]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
         
         [Required]
-        public int ChatSessionId { get; set; }
+        [MaxLength(36)]
+        public string ChatSessionId { get; set; } = string.Empty;
         
         [Required]
         [MaxLength(50)]

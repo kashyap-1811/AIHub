@@ -13,7 +13,7 @@ namespace AIHub.API.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Message>> GetByChatSessionIdAsync(int chatSessionId)
+        public async Task<IEnumerable<Message>> GetByChatSessionIdAsync(string chatSessionId)
         {
             return await _context.Messages
                 .Where(m => m.ChatSessionId == chatSessionId)
@@ -35,7 +35,7 @@ namespace AIHub.API.Repositories
             return message;
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(string id)
         {
             var message = await _context.Messages.FindAsync(id);
             if (message != null)

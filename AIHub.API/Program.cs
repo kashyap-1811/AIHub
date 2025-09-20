@@ -26,11 +26,13 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
 builder.Services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IContextSummaryRepository, ContextSummaryRepository>();
 
 // Services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ChatGPTService>();
 builder.Services.AddScoped<GeminiService>();
+builder.Services.AddScoped<IContextService, ContextService>();
 builder.Services.AddScoped<ClaudeService>();
 builder.Services.AddScoped<DeepSeekService>();
 
