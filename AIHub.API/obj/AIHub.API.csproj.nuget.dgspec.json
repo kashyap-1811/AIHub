@@ -1,31 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\CE\\CE SEM-V\\WAD\\AIHub\\AIHub.API\\AIHub.API.csproj": {}
+    "/Users/jasmitavekariya/AIHub/AIHub.API/AIHub.API.csproj": {}
   },
   "projects": {
-    "C:\\CE\\CE SEM-V\\WAD\\AIHub\\AIHub.API\\AIHub.API.csproj": {
+    "/Users/jasmitavekariya/AIHub/AIHub.API/AIHub.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\CE\\CE SEM-V\\WAD\\AIHub\\AIHub.API\\AIHub.API.csproj",
+        "projectUniqueName": "/Users/jasmitavekariya/AIHub/AIHub.API/AIHub.API.csproj",
         "projectName": "AIHub.API",
-        "projectPath": "C:\\CE\\CE SEM-V\\WAD\\AIHub\\AIHub.API\\AIHub.API.csproj",
-        "packagesPath": "C:\\Users\\kashu\\.nuget\\packages\\",
-        "outputPath": "C:\\CE\\CE SEM-V\\WAD\\AIHub\\AIHub.API\\obj\\",
+        "projectPath": "/Users/jasmitavekariya/AIHub/AIHub.API/AIHub.API.csproj",
+        "packagesPath": "/Users/jasmitavekariya/.nuget/packages/",
+        "outputPath": "/Users/jasmitavekariya/AIHub/AIHub.API/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\kashu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/jasmitavekariya/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -70,7 +64,7 @@
               "target": "Package",
               "version": "[9.0.6, )"
             },
-            "Microsoft.EntityFrameworkCore.SqlServer": {
+            "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
               "version": "[9.0.0, )"
             },
@@ -110,7 +104,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -1,27 +1,80 @@
 import React from 'react';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
-import { useAuth } from './contexts/AuthContext';
-import AuthPage from './components/auth/AuthPage';
-import ChatInterface from './components/chat/ChatInterface';
+import LoginPage from './pages/LoginPage';
+import ChatPage from './pages/ChatPage';
+import ProfilePage from './pages/ProfilePage';
+import SupportPage from './pages/SupportPage';
+import LoadingSpinner from './components/LoadingSpinner';
 
-function AppContent() {
+function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="vh-100 d-flex align-items-center justify-content-center bg-light">
-        <div className="text-center">
-          <div className="spinner-border text-primary mb-3" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="text-muted">Loading AI Hub...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
-  return isAuthenticated ? <ChatInterface /> : <AuthPage />;
+  return isAuthenticated ? children : <Navigate to="/login" />;
+}
+
+function PublicRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  return !isAuthenticated ? children : <Navigate to="/" />;
+}
+
+function AppContent() {
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat/:sessionId"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/support"
+          element={
+            <ProtectedRoute>
+              <SupportPage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Router>
+  );
 }
 
 function App() {

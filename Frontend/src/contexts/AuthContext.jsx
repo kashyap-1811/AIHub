@@ -1,39 +1,55 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import api from '../services/api';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { authAPI } from '../services/api';
 
 const AuthContext = createContext();
 
 const initialState = {
   user: null,
-  token: localStorage.getItem('token'),
+  token: null,
   isAuthenticated: false,
-  loading: true
+  loading: true,
+  error: null
 };
 
 const authReducer = (state, action) => {
   switch (action.type) {
+    case 'SET_LOADING':
+      return {
+        ...state,
+        loading: action.payload,
+        error: null
+      };
     case 'LOGIN_SUCCESS':
-      localStorage.setItem('token', action.payload.token);
       return {
         ...state,
         user: action.payload.user,
         token: action.payload.token,
         isAuthenticated: true,
-        loading: false
+        loading: false,
+        error: null
       };
-    case 'LOGOUT':
-      localStorage.removeItem('token');
+    case 'LOGIN_FAILURE':
       return {
         ...state,
         user: null,
         token: null,
         isAuthenticated: false,
-        loading: false
+        loading: false,
+        error: action.payload
       };
-    case 'SET_LOADING':
+    case 'LOGOUT':
       return {
         ...state,
-        loading: action.payload
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        loading: false,
+        error: null
+      };
+    case 'CLEAR_ERROR':
+      return {
+        ...state,
+        error: null
       };
     default:
       return state;
@@ -43,35 +59,91 @@ const authReducer = (state, action) => {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Set default authorization header
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      // Verify token with backend
-      api.get('/api/auth/me')
-        .then(response => {
-          dispatch({
-            type: 'LOGIN_SUCCESS',
-            payload: { token, user: response.data.user }
-          });
-        })
-        .catch(() => {
-          dispatch({ type: 'LOGOUT' });
-        });
-    } else {
-      dispatch({ type: 'SET_LOADING', payload: false });
+  // Secure token storage functions
+  const setTokenInStorage = useCallback((token) => {
+    try {
+      if (token) {
+        sessionStorage.setItem('token', token);
+      }
+    } catch (error) {
+      console.error('Failed to store token:', error);
     }
   }, []);
 
-  const login = async (credentials) => {
+  const getTokenFromStorage = useCallback(() => {
     try {
-      const response = await api.post('/api/auth/login', credentials);
+      return sessionStorage.getItem('token') || localStorage.getItem('token');
+    } catch (error) {
+      console.error('Failed to retrieve token:', error);
+      return null;
+    }
+  }, []);
+
+  const removeTokenFromStorage = useCallback(() => {
+    try {
+      sessionStorage.removeItem('token');
+      localStorage.removeItem('token');
+    } catch (error) {
+      console.error('Failed to remove token:', error);
+    }
+  }, []);
+
+  // Validate token on app start
+  const validateToken = useCallback(async (token) => {
+    if (!token) return false;
+
+    try {
+      const response = await authAPI.getCurrentUser();
+      if (response.data?.user) {
+        dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: { 
+            token, 
+            user: response.data.user 
+          }
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      removeTokenFromStorage();
+      return false;
+    }
+  }, [removeTokenFromStorage]);
+
+  // Initialize authentication state
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = getTokenFromStorage();
+      
+      if (token) {
+        const isValid = await validateToken(token);
+        if (!isValid) {
+          removeTokenFromStorage();
+        }
+      } else {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+    };
+
+    initializeAuth();
+  }, [getTokenFromStorage, validateToken, removeTokenFromStorage]);
+
+  // Login function
+  const login = useCallback(async (credentials) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+      
+      const response = await authAPI.login(credentials);
       const { token, user } = response.data;
       
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
+      if (!token || !user) {
+        throw new Error('Invalid response from server');
+      }
+
+      setTokenInStorage(token);
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { token, user }
@@ -79,20 +151,38 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      console.error('Login failed:', error);
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          'Login failed. Please try again.';
+      
+      dispatch({ 
+        type: 'LOGIN_FAILURE', 
+        payload: errorMessage 
+      });
+      
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Login failed' 
+        error: errorMessage 
       };
     }
-  };
+  }, [setTokenInStorage]);
 
-  const register = async (userData) => {
+  // Register function
+  const register = useCallback(async (userData) => {
     try {
-      const response = await api.post('/api/auth/register', userData);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+      
+      const response = await authAPI.register(userData);
       const { token, user } = response.data;
       
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
+      if (!token || !user) {
+        throw new Error('Invalid response from server');
+      }
+
+      setTokenInStorage(token);
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { token, user }
@@ -100,47 +190,55 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Registration failed' 
-      };
-    }
-  };
-
-  const googleAuth = async (googleData) => {
-    try {
-      const response = await api.post('/api/auth/google', googleData);
-      const { token, user } = response.data;
+      console.error('Registration failed:', error);
       
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          'Registration failed. Please try again.';
       
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: { token, user }
+      dispatch({ 
+        type: 'LOGIN_FAILURE', 
+        payload: errorMessage 
       });
       
-      return { success: true };
-    } catch (error) {
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Google authentication failed' 
+        error: errorMessage 
       };
     }
-  };
+  }, [setTokenInStorage]);
 
-  const logout = () => {
-    delete api.defaults.headers.common['Authorization'];
-    dispatch({ type: 'LOGOUT' });
-  };
+  // Logout function
+  const logout = useCallback(async () => {
+    try {
+      // Notify backend of logout if needed
+      if (state.token) {
+        // Add logout API call if backend supports it
+      }
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      removeTokenFromStorage();
+      dispatch({ type: 'LOGOUT' });
+    }
+  }, [state.token, removeTokenFromStorage]);
+
+  // Clear error function
+  const clearError = useCallback(() => {
+    dispatch({ type: 'CLEAR_ERROR' });
+  }, []);
+
+  // Context value
+  const contextValue = React.useMemo(() => ({
+    ...state,
+    login,
+    register,
+    logout,
+    clearError
+  }), [state, login, register, logout, clearError]);
 
   return (
-    <AuthContext.Provider value={{
-      ...state,
-      login,
-      register,
-      googleAuth,
-      logout
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
