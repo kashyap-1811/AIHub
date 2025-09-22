@@ -7,12 +7,15 @@ namespace AIHub.API.Data
     {
         public AIHubDbContext(DbContextOptions<AIHubDbContext> options) : base(options)
         {
+            // Disable lazy loading to prevent circular reference issues
+            ChangeTracker.LazyLoadingEnabled = false;
         }
 
         public DbSet<User> Users { get; set; }
         public DbSet<ApiKey> ApiKeys { get; set; }
         public DbSet<ChatSession> ChatSessions { get; set; }
         public DbSet<Message> Messages { get; set; }
+        public DbSet<Conversation> Conversations { get; set; }
         public DbSet<ContextSummary> ContextSummaries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -56,6 +59,21 @@ namespace AIHub.API.Data
                 entity.HasKey(e => e.Id);
                 entity.HasOne(e => e.ChatSession)
                       .WithMany(e => e.Messages)
+                      .HasForeignKey(e => e.ChatSessionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasOne(e => e.Conversation)
+                      .WithMany(e => e.Messages)
+                      .HasForeignKey(e => e.ConversationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Conversation configuration
+            modelBuilder.Entity<Conversation>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.ChatSession)
+                      .WithMany(e => e.Conversations)
                       .HasForeignKey(e => e.ChatSessionId)
                       .OnDelete(DeleteBehavior.Cascade);
             });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -9,7 +9,9 @@ import {
   LogOut, 
   Trash2,
   MoreVertical,
-  User
+  User,
+  Edit3,
+  List
 } from 'lucide-react';
 
 const Sidebar = ({ 
@@ -18,12 +20,34 @@ const Sidebar = ({
   currentSession, 
   onSessionSelect, 
   onNewChat, 
-  onSessionClose 
+  onSessionClose,
+  onDeleteSession,
+  onManageColumns
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSessionMenu, setShowSessionMenu] = useState(null);
+  const menuRef = useRef(null);
+
+  // Debug logging
+  console.log('Sidebar rendered with sessions:', sessions.length, 'sessions');
+  console.log('Current session:', currentSession?.id);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowSessionMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -102,7 +126,9 @@ const Sidebar = ({
           </div>
         ) : (
           <div className="px-2">
-            {sessions.map((session) => (
+            {sessions.map((session) => {
+              console.log('Rendering session:', session.id, session.title);
+              return (
               <div
                 key={session.id}
                 className={`chat-session-item p-2 mb-1 rounded cursor-pointer d-flex align-items-center justify-content-between ${
@@ -137,20 +163,75 @@ const Sidebar = ({
                   </div>
                 </div>
                 
-                {currentSession?.id === session.id && (
-                  <button
-                    className="btn btn-sm btn-outline-danger p-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSessionClose(session.id);
-                    }}
-                    style={{ width: '24px', height: '24px' }}
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                )}
+                <div className="d-flex align-items-center">
+                  {currentSession?.id === session.id && (
+                    <button
+                      className="btn btn-sm btn-outline-danger p-1 me-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSessionClose(session.id);
+                      }}
+                      style={{ width: '24px', height: '24px' }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                  
+                  <div className="position-relative" ref={menuRef}>
+                    <button
+                      className="btn btn-sm btn-outline-secondary p-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Three dots button clicked for session:', session.id);
+                        setShowSessionMenu(showSessionMenu === session.id ? null : session.id);
+                      }}
+                      style={{ width: '28px', height: '28px' }}
+                      title="More options"
+                    >
+                      <MoreVertical size={14} />
+                    </button>
+                    
+                    {showSessionMenu === session.id && (
+                      <div 
+                        className="position-absolute bg-dark border border-secondary rounded shadow-lg"
+                        style={{
+                          top: '100%',
+                          right: '0',
+                          zIndex: 1000,
+                          minWidth: '150px'
+                        }}
+                      >
+                        <button
+                          className="btn btn-sm btn-outline-light w-100 d-flex align-items-center justify-content-start border-0 rounded-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Manage columns button clicked for session:', session);
+                            onManageColumns(session);
+                            setShowSessionMenu(null);
+                          }}
+                        >
+                          <List size={14} className="me-2" />
+                          Manage Columns
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-start border-0 rounded-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Delete chat button clicked for session:', session);
+                            onDeleteSession(session);
+                            setShowSessionMenu(null);
+                          }}
+                        >
+                          <Trash2 size={14} className="me-2" />
+                          Delete Chat
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

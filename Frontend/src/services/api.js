@@ -61,6 +61,13 @@ export const chatAPI = {
   sendMessage: (sessionId, messageData) => api.post(`/api/chat/sessions/${sessionId}/messages`, messageData),
   broadcastMessage: (messageData) => api.post('/api/chat/broadcast', messageData),
   deleteChatSession: (sessionId) => api.delete(`/api/chat/sessions/${sessionId}`),
+  // Conversation management
+  getConversations: (sessionId) => api.get(`/api/chat/sessions/${sessionId}/conversations`),
+  createConversation: (sessionId, conversationData) => api.post(`/api/chat/sessions/${sessionId}/conversations`, conversationData),
+  getConversationMessages: (conversationId) => api.get(`/api/chat/conversations/${conversationId}/messages`),
+  sendMessageToConversation: (conversationId, messageData) => api.post(`/api/chat/conversations/${conversationId}/messages`, messageData),
+  updateConversation: (conversationId, updateData) => api.put(`/api/chat/conversations/${conversationId}`, updateData),
+  deleteConversation: (conversationId) => api.delete(`/api/chat/conversations/${conversationId}`),
 };
 
 export default api;

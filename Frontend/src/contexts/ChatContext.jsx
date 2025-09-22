@@ -1,12 +1,25 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect, useMemo } from 'react';
 import { chatAPI } from '../services/api';
 
+// Token retrieval function (same as AuthContext)
+const getTokenFromStorage = () => {
+  try {
+    return sessionStorage.getItem('token') || localStorage.getItem('token');
+  } catch (error) {
+    console.error('Failed to retrieve token:', error);
+    return null;
+  }
+};
+
 const ChatContext = createContext();
 
 const initialState = {
   chatSessions: [],
   activeSessions: [],
   messages: {},
+  conversations: {},
+  activeConversations: {},
+  conversationMessages: {},
   loading: false,
   sendingMessage: false,
   error: null,
@@ -50,10 +63,13 @@ const chatReducer = (state, action) => {
       };
       
     case 'ADD_CHAT_SESSION':
+      console.log('ADD_CHAT_SESSION reducer called with:', action.payload);
       const sessionExists = state.chatSessions.some(session => session.id === action.payload.id);
       if (sessionExists) {
+        console.log('Session already exists, skipping add');
         return { ...state, loading: false };
       }
+      console.log('Adding new session to chatSessions');
       return { 
         ...state, 
         chatSessions: [action.payload, ...state.chatSessions],
@@ -162,6 +178,163 @@ const chatReducer = (state, action) => {
             : session
         )
       };
+
+    // Conversation cases
+    case 'SET_CONVERSATIONS':
+      return {
+        ...state,
+        conversations: {
+          ...state.conversations,
+          [action.payload.sessionId]: Array.isArray(action.payload.conversations) 
+            ? action.payload.conversations 
+            : []
+        }
+      };
+
+    case 'ADD_CONVERSATION':
+      const { sessionId: addSessionId, conversation } = action.payload;
+      return {
+        ...state,
+        conversations: {
+          ...state.conversations,
+          [addSessionId]: [
+            ...(state.conversations[addSessionId] || []),
+            conversation
+          ]
+        }
+      };
+
+    case 'REMOVE_CONVERSATION':
+      const { sessionId: removeSessionId, conversationId } = action.payload;
+      return {
+        ...state,
+        conversations: {
+          ...state.conversations,
+          [removeSessionId]: (state.conversations[removeSessionId] || []).filter(c => c.id !== conversationId)
+        },
+        activeConversations: {
+          ...state.activeConversations,
+          [removeSessionId]: (state.activeConversations[removeSessionId] || []).filter(c => c.id !== conversationId)
+        }
+      };
+
+    case 'ADD_ACTIVE_CONVERSATION':
+      const { sessionId: activeSessionId, conversation: activeConversation } = action.payload;
+      const currentActiveConversations = state.activeConversations[activeSessionId] || [];
+      const isConversationAlreadyActive = currentActiveConversations.some(conv => conv.id === activeConversation.id);
+      
+      if (isConversationAlreadyActive) {
+        return state;
+      }
+      
+      return {
+        ...state,
+        activeConversations: {
+          ...state.activeConversations,
+          [activeSessionId]: [
+            ...currentActiveConversations,
+            activeConversation
+          ]
+        }
+      };
+
+    case 'REMOVE_ACTIVE_CONVERSATION':
+      const { sessionId: removeActiveSessionId, conversationId: removeActiveConversationId } = action.payload;
+      return {
+        ...state,
+        activeConversations: {
+          ...state.activeConversations,
+          [removeActiveSessionId]: (state.activeConversations[removeActiveSessionId] || []).filter(c => c.id !== removeActiveConversationId)
+        }
+      };
+      
+    case 'SET_ACTIVE_CONVERSATIONS':
+      const { sessionId: setActiveSessionId, conversations: setActiveConversations } = action.payload;
+      return {
+        ...state,
+        activeConversations: {
+          ...state.activeConversations,
+          [setActiveSessionId]: setActiveConversations || []
+        }
+      };
+      
+    case 'SET_CONVERSATION_MESSAGES':
+      const { conversationId: setConvId, messages: conversationMessages } = action.payload;
+      return {
+        ...state,
+        conversationMessages: {
+          ...state.conversationMessages,
+          [setConvId]: conversationMessages || []
+        }
+      };
+      
+    case 'ADD_TEMPORARY_MESSAGE':
+      const { conversationId: tempConvId, message: tempMessage } = action.payload;
+      return {
+        ...state,
+        conversationMessages: {
+          ...state.conversationMessages,
+          [tempConvId]: [...(state.conversationMessages[tempConvId] || []), tempMessage]
+        }
+      };
+      
+    case 'REMOVE_TEMPORARY_MESSAGE':
+      const { conversationId: removeTempConvId, messageId: tempMessageId } = action.payload;
+      return {
+        ...state,
+        conversationMessages: {
+          ...state.conversationMessages,
+          [removeTempConvId]: (state.conversationMessages[removeTempConvId] || []).filter(msg => msg.id !== tempMessageId)
+        }
+      };
+      
+    case 'UPDATE_CONVERSATION':
+      const { conversationId: updateConvId, updates: conversationUpdates } = action.payload;
+      return {
+        ...state,
+        conversations: {
+          ...state.conversations,
+          [Object.keys(state.conversations).find(sessionId => 
+            state.conversations[sessionId]?.some(conv => conv.id === updateConvId)
+          )]: state.conversations[Object.keys(state.conversations).find(sessionId => 
+            state.conversations[sessionId]?.some(conv => conv.id === updateConvId)
+          )]?.map(conv => 
+            conv.id === updateConvId ? { ...conv, ...conversationUpdates } : conv
+          ) || []
+        },
+        activeConversations: {
+          ...state.activeConversations,
+          [Object.keys(state.activeConversations).find(sessionId => 
+            state.activeConversations[sessionId]?.some(conv => conv.id === updateConvId)
+          )]: state.activeConversations[Object.keys(state.activeConversations).find(sessionId => 
+            state.activeConversations[sessionId]?.some(conv => conv.id === updateConvId)
+          )]?.map(conv => 
+            conv.id === updateConvId ? { ...conv, ...conversationUpdates } : conv
+          ) || []
+        }
+      };
+      
+    case 'DELETE_CONVERSATION':
+      const { conversationId: deleteConvId } = action.payload;
+      const sessionIdToUpdate = Object.keys(state.conversations).find(sessionId => 
+        state.conversations[sessionId]?.some(conv => conv.id === deleteConvId)
+      );
+      
+      return {
+        ...state,
+        conversations: {
+          ...state.conversations,
+          [sessionIdToUpdate]: state.conversations[sessionIdToUpdate]?.filter(conv => conv.id !== deleteConvId) || []
+        },
+        activeConversations: {
+          ...state.activeConversations,
+          [sessionIdToUpdate]: state.activeConversations[sessionIdToUpdate]?.filter(conv => conv.id !== deleteConvId) || []
+        },
+        conversationMessages: {
+          ...state.conversationMessages,
+          [deleteConvId]: undefined
+        }
+      };
       
     default:
       return state;
@@ -197,11 +370,14 @@ export const ChatProvider = ({ children }) => {
 
   // Fetch chat sessions
   const fetchChatSessions = useCallback(async () => {
+    console.log('Fetching chat sessions...');
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
       
       const response = await chatAPI.getChatSessions();
+      
+      console.log('Chat sessions fetched:', response.data);
       
       dispatch({ 
         type: 'SET_CHAT_SESSIONS', 
@@ -225,6 +401,8 @@ export const ChatProvider = ({ children }) => {
       return { success: false, error };
     }
 
+    console.log('Creating chat session:', { title, serviceName });
+    
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
@@ -233,6 +411,8 @@ export const ChatProvider = ({ children }) => {
         title: title.trim(),
         serviceName
       });
+      
+      console.log('Chat session created successfully:', response.data);
       
       dispatch({ 
         type: 'ADD_CHAT_SESSION', 
@@ -422,6 +602,287 @@ export const ChatProvider = ({ children }) => {
   const openChatSession = useCallback((session) => addActiveSession(session), [addActiveSession]);
   const closeChatSession = useCallback((sessionId) => removeActiveSession(sessionId), [removeActiveSession]);
 
+  // Conversation management
+  const fetchConversations = useCallback(async (sessionId) => {
+    if (!sessionId) return { success: false, error: 'Session ID is required' };
+
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+      
+      const response = await fetch(`http://localhost:3000/api/chat/sessions/${sessionId}/conversations`, {
+        headers: {
+          'Authorization': `Bearer ${getTokenFromStorage()}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const conversations = await response.json();
+      
+      dispatch({ 
+        type: 'SET_CONVERSATIONS', 
+        payload: { sessionId, conversations } 
+      });
+      
+      // Only set active conversations if none are currently active
+      const currentActiveConversations = state.activeConversations[sessionId] || [];
+      console.log('fetchConversations - currentActiveConversations:', currentActiveConversations.length);
+      if (currentActiveConversations.length === 0) {
+        console.log('Setting active conversations from fetchConversations:', conversations);
+        dispatch({ 
+          type: 'SET_ACTIVE_CONVERSATIONS', 
+          payload: { sessionId, conversations } 
+        });
+      } else {
+        console.log('Active conversations already exist, skipping SET_ACTIVE_CONVERSATIONS');
+      }
+      
+      return { success: true, data: conversations };
+    } catch (error) {
+      const errorMessage = handleError(error, 'Fetching conversations');
+      return { success: false, error: errorMessage };
+    }
+  }, [handleError]);
+
+  const createConversation = useCallback(async (sessionId, title, serviceName) => {
+    if (!sessionId || !title?.trim()) {
+      const error = 'Session ID and title are required';
+      dispatch({ type: 'SET_ERROR', payload: error });
+      return { success: false, error };
+    }
+
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+      
+      const response = await fetch(`http://localhost:3000/api/chat/sessions/${sessionId}/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getTokenFromStorage()}`
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          serviceName
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const conversation = await response.json();
+      
+      console.log('Adding conversation to conversations:', conversation);
+      dispatch({ 
+        type: 'ADD_CONVERSATION', 
+        payload: { sessionId, conversation } 
+      });
+      
+      // Add to active conversations (visible columns) - this will be the first column
+      console.log('Adding conversation to active conversations:', conversation);
+      dispatch({ 
+        type: 'ADD_ACTIVE_CONVERSATION', 
+        payload: { sessionId, conversation } 
+      });
+      
+      return { success: true, data: conversation };
+    } catch (error) {
+      const errorMessage = handleError(error, 'Creating conversation');
+      return { success: false, error: errorMessage };
+    }
+  }, [handleError]);
+
+  const addTemporaryMessage = useCallback((conversationId, message) => {
+    dispatch({ 
+      type: 'ADD_TEMPORARY_MESSAGE', 
+      payload: { conversationId, message } 
+    });
+  }, []);
+
+  const removeTemporaryMessage = useCallback((conversationId, messageId) => {
+    dispatch({ 
+      type: 'REMOVE_TEMPORARY_MESSAGE', 
+      payload: { conversationId, messageId } 
+    });
+  }, []);
+
+  const updateConversationTitle = useCallback(async (conversationId, newTitle) => {
+    if (!conversationId || !newTitle?.trim()) {
+      return { success: false, error: 'Conversation ID and title are required' };
+    }
+
+    try {
+      const response = await chatAPI.updateConversation(conversationId, {
+        title: newTitle.trim()
+      });
+      
+      const updatedConversation = response.data;
+      
+      dispatch({ 
+        type: 'UPDATE_CONVERSATION', 
+        payload: { conversationId, updates: { title: updatedConversation.title } } 
+      });
+      
+      return { success: true, data: updatedConversation };
+    } catch (error) {
+      const errorMessage = handleError(error, 'Updating conversation title');
+      return { success: false, error: errorMessage };
+    }
+  }, [handleError]);
+
+  const deleteConversation = useCallback(async (conversationId) => {
+    if (!conversationId) {
+      return { success: false, error: 'Conversation ID is required' };
+    }
+
+    try {
+      await chatAPI.deleteConversation(conversationId);
+      
+      dispatch({ 
+        type: 'DELETE_CONVERSATION', 
+        payload: { conversationId } 
+      });
+      
+      return { success: true };
+    } catch (error) {
+      const errorMessage = handleError(error, 'Deleting conversation');
+      return { success: false, error: errorMessage };
+    }
+  }, [handleError]);
+
+  const loadConversationMessages = useCallback(async (conversationId) => {
+    if (!conversationId) return { success: false, error: 'Conversation ID is required' };
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/chat/conversations/${conversationId}/messages`, {
+        headers: {
+          'Authorization': `Bearer ${getTokenFromStorage()}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const messages = await response.json();
+      
+      dispatch({ 
+        type: 'SET_CONVERSATION_MESSAGES', 
+        payload: { conversationId, messages } 
+      });
+      
+      return { success: true, data: messages };
+    } catch (error) {
+      const errorMessage = handleError(error, 'Loading conversation messages');
+      return { success: false, error: errorMessage };
+    }
+  }, [handleError]);
+
+  const sendMessageToConversation = useCallback(async (conversationId, serviceName, message) => {
+    if (!conversationId || !message?.trim()) {
+      const error = 'Conversation ID and message are required';
+      dispatch({ type: 'SET_ERROR', payload: error });
+      return { success: false, error };
+    }
+
+    try {
+      dispatch({ type: 'SET_SENDING_MESSAGE', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+      
+      const response = await fetch(`http://localhost:3000/api/chat/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getTokenFromStorage()}`
+        },
+        body: JSON.stringify({
+          serviceName,
+          message: message.trim()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      dispatch({ type: 'SET_SENDING_MESSAGE', payload: false });
+      return { success: true, data: result };
+    } catch (error) {
+      const errorMessage = handleError(error, 'Sending message to conversation');
+      return { success: false, error: errorMessage };
+    }
+  }, [handleError]);
+
+  const broadcastMessage = useCallback(async (sessionId, message, serviceNames) => {
+    if (!sessionId || !message?.trim() || !serviceNames?.length) {
+      const error = 'Session ID, message, and service names are required';
+      dispatch({ type: 'SET_ERROR', payload: error });
+      return { success: false, error };
+    }
+
+    try {
+      dispatch({ type: 'SET_SENDING_MESSAGE', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+      
+      const response = await fetch(`http://localhost:3000/api/chat/sessions/${sessionId}/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getTokenFromStorage()}`
+        },
+        body: JSON.stringify({
+          message: message.trim(),
+          serviceNames
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      dispatch({ type: 'SET_SENDING_MESSAGE', payload: false });
+      return { success: true, data: result };
+    } catch (error) {
+      const errorMessage = handleError(error, 'Broadcasting message');
+      return { success: false, error: errorMessage };
+    }
+  }, [handleError]);
+
+  const addActiveConversation = useCallback((sessionId, conversation) => {
+    if (!sessionId || !conversation?.id) return;
+    dispatch({ type: 'ADD_ACTIVE_CONVERSATION', payload: { sessionId, conversation } });
+  }, []);
+
+  const removeActiveConversation = useCallback((sessionId, conversationId) => {
+    if (!sessionId || !conversationId) return;
+    dispatch({ type: 'REMOVE_ACTIVE_CONVERSATION', payload: { sessionId, conversationId } });
+  }, []);
+
+  const showColumn = useCallback((sessionId, conversationId) => {
+    if (!sessionId || !conversationId) return;
+    
+    // Find the conversation in the conversations array
+    const sessionConversations = state.conversations[sessionId] || [];
+    const conversation = sessionConversations.find(conv => conv.id === conversationId);
+    
+    if (conversation) {
+      dispatch({ type: 'ADD_ACTIVE_CONVERSATION', payload: { sessionId, conversation } });
+    }
+  }, [state.conversations]);
+
+  const hideColumn = useCallback((sessionId, conversationId) => {
+    if (!sessionId || !conversationId) return;
+    dispatch({ type: 'REMOVE_ACTIVE_CONVERSATION', payload: { sessionId, conversationId } });
+  }, []);
+
   // Context value
   const contextValue = useMemo(() => ({
     ...state,
@@ -435,6 +896,20 @@ export const ChatProvider = ({ children }) => {
     addActiveSession,
     removeActiveSession,
     updateActiveSession,
+    // Conversation methods
+    fetchConversations,
+    createConversation,
+    loadConversationMessages,
+    sendMessageToConversation,
+    broadcastMessage,
+    addActiveConversation,
+    removeActiveConversation,
+    showColumn,
+    hideColumn,
+    addTemporaryMessage,
+    removeTemporaryMessage,
+    updateConversationTitle,
+    deleteConversation,
     // Utility methods
     clearError,
     addMessageToSession,
@@ -452,6 +927,19 @@ export const ChatProvider = ({ children }) => {
     addActiveSession,
     removeActiveSession,
     updateActiveSession,
+    fetchConversations,
+    createConversation,
+    loadConversationMessages,
+    sendMessageToConversation,
+    broadcastMessage,
+    addActiveConversation,
+    removeActiveConversation,
+    showColumn,
+    hideColumn,
+    addTemporaryMessage,
+    removeTemporaryMessage,
+    updateConversationTitle,
+    deleteConversation,
     clearError,
     addMessageToSession,
     loadChatSessions,

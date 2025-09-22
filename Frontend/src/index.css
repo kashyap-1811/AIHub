@@ -470,10 +470,70 @@ body {
   font-weight: bold !important;
 }
 
+/* Multi-Column Chat Layout */
+.chat-columns-container {
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg-secondary);
+  /* overflow-x handled dynamically based on column count */
+}
+
+.chat-columns-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.chat-columns-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.chat-columns-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.chat-columns-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.chat-column {
+  min-width: 300px;
+  flex-shrink: 0;
+  height: 100%;
+  border-right: 1px solid var(--border-color);
+  /* Responsive sizing handled by inline styles */
+}
+
+.chat-column:last-child {
+  border-right: none;
+}
+
+/* Message Input at Bottom */
+.chat-input-container {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+  z-index: 10;
+}
+
+/* Fixed Message Area Height */
+.chat-messages-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  max-height: calc(100vh - 200px);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   :root {
     --sidebar-width: 100%;
+  }
+  
+  .chat-column {
+    min-width: 280px;
+    max-width: 100%;
   }
   
   .markdown-content .markdown-pre {
