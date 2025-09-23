@@ -3,14 +3,15 @@ import { useChat } from '../contexts/ChatContext';
 import { Send, X, Bot, User, Loader2 } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 
-const ChatInterface = ({ session, onClose }) => {
-  const { sendMessage, messages, sendingMessage, fetchMessages } = useChat();
+const ChatInterface = ({ session, messages = [], onClose }) => {
+  const { sendMessage, sessionLoadingStates, fetchMessages } = useChat();
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
-  const sessionMessages = messages[session.id] || [];
+  const sessionMessages = messages || [];
+  const sendingMessage = sessionLoadingStates[session.id] || false;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

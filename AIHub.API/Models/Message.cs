@@ -12,9 +12,6 @@ namespace AIHub.API.Models
         [MaxLength(36)]
         public string ChatSessionId { get; set; } = string.Empty;
         
-        [MaxLength(36)]
-        public string? ConversationId { get; set; } // Optional - for sub-conversations
-        
         [Required]
         [MaxLength(50)]
         public string ServiceName { get; set; } = string.Empty; // ChatGPT, Gemini, Claude, DeepSeek
@@ -30,6 +27,5 @@ namespace AIHub.API.Models
         
         // Navigation properties
         public virtual ChatSession ChatSession { get; set; } = null!;
-        public virtual Conversation? Conversation { get; set; }
     }
 }

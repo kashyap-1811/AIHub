@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Plus, Settings } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ChatInterface from '../components/ChatInterface';
-import MultiColumnChat from '../components/MultiColumnChat';
 import NewChatModal from '../components/NewChatModal';
-import ColumnManagementModal from '../components/ColumnManagementModal';
 
 const ChatPage = () => {
   const { sessionId } = useParams();
@@ -16,30 +14,27 @@ const ChatPage = () => {
   const { 
     chatSessions, 
     activeSessions, 
-    conversations,
-    activeConversations,
+    messages,
     fetchChatSessions, 
     addActiveSession,
     removeActiveSession,
     deleteChatSession,
-    updateConversationTitle,
-    deleteConversation,
-    showColumn,
-    hideColumn
+    updateChatSession
   } = useChat();
   
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const [showColumnModal, setShowColumnModal] = useState(false);
   const [currentSession, setCurrentSession] = useState(null);
-  const [selectedSession, setSelectedSession] = useState(null);
 
   // Load chat sessions on mount
   useEffect(() => {
+    console.log('ChatPage: User effect triggered, user:', user);
     if (user) {
-      console.log('Fetching chat sessions for user:', user.id);
+      console.log('ChatPage: Fetching chat sessions for user:', user.id);
       fetchChatSessions();
+    } else {
+      console.log('ChatPage: No user found, not fetching chat sessions');
     }
-  }, [user]); // Removed fetchChatSessions from dependencies to prevent re-fetching
+  }, [user]);
 
   // Handle session selection from URL
   useEffect(() => {
@@ -48,7 +43,6 @@ const ChatPage = () => {
         // Sessions are still loading, show loading state
         setCurrentSession({ id: sessionId, loading: true });
       } else {
-        // Sessions loaded, try to find the session
         const session = chatSessions.find(s => s.id === sessionId);
         if (session) {
           setCurrentSession(session);
@@ -58,10 +52,11 @@ const ChatPage = () => {
           navigate('/');
         }
       }
+    } else {
+      setCurrentSession(null);
     }
-  }, [sessionId, chatSessions, addActiveSession, navigate]);
+  }, [sessionId, chatSessions, navigate, addActiveSession]);
 
-  // Handle new chat creation
   const handleNewChat = (session) => {
     setCurrentSession(session);
     addActiveSession(session);
@@ -69,25 +64,9 @@ const ChatPage = () => {
     setShowNewChatModal(false);
   };
 
-  // Handle session selection
-  const handleSessionSelect = (session) => {
-    setCurrentSession(session);
-    addActiveSession(session);
-    navigate(`/chat/${session.id}`);
-  };
-
-  // Handle session close
-  const handleSessionClose = (sessionId) => {
-    removeActiveSession(sessionId);
-    if (currentSession?.id === sessionId) {
-      setCurrentSession(null);
-      navigate('/');
-    }
-  };
-
   const handleDeleteSession = async (session) => {
     console.log('Delete session clicked:', session);
-    if (window.confirm(`Are you sure you want to delete "${session.title}"? This will permanently delete the chat and all its columns.`)) {
+    if (window.confirm(`Are you sure you want to delete "${session.title}"? This will permanently delete the chat.`)) {
       try {
         console.log('Calling deleteChatSession with ID:', session.id);
         const result = await deleteChatSession(session.id);
@@ -107,122 +86,113 @@ const ChatPage = () => {
     }
   };
 
-  const handleManageColumns = async (session) => {
-    console.log('Manage columns clicked:', session);
-    console.log('Current conversations for session:', conversations[session?.id] || []);
-    console.log('Current active conversations for session:', activeConversations[session?.id] || []);
-    
-    // Ensure conversations are fetched for this session
-    if (session?.id && (!conversations[session.id] || conversations[session.id].length === 0)) {
-      console.log('Fetching conversations for session:', session.id);
-      try {
-        await fetchConversations(session.id);
-      } catch (error) {
-        console.error('Failed to fetch conversations:', error);
-      }
-    }
-    
-    setSelectedSession(session);
-    setShowColumnModal(true);
-  };
-
-  const handleUpdateColumn = async (conversationId, newTitle) => {
+  const handleUpdateSession = async (sessionId, updates) => {
     try {
-      const result = await updateConversationTitle(conversationId, newTitle);
-      if (!result?.success) {
-        alert('Failed to update column: ' + (result?.error || 'Unknown error'));
+      const result = await updateChatSession(sessionId, updates);
+      if (result?.success) {
+        // Update current session if it's the one being updated
+        if (currentSession?.id === sessionId) {
+          setCurrentSession({ ...currentSession, ...updates });
+        }
+      } else {
+        alert('Failed to update chat: ' + (result?.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Failed to update column:', error);
-      alert('Failed to update column: ' + error.message);
+      console.error('Failed to update chat:', error);
+      alert('Failed to update chat: ' + error.message);
     }
   };
 
-  const handleDeleteColumn = async (conversationId) => {
-    try {
-      const result = await deleteConversation(conversationId);
-      if (!result?.success) {
-        alert('Failed to delete column: ' + (result?.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Failed to delete column:', error);
-      alert('Failed to delete column: ' + error.message);
-    }
-  };
-
-  const handleShowColumn = (conversationId) => {
-    if (selectedSession?.id) {
-      showColumn(selectedSession.id, conversationId);
-    }
-  };
-
-  const handleHideColumn = (conversationId) => {
-    if (selectedSession?.id) {
-      hideColumn(selectedSession.id, conversationId);
-    }
-  };
-
-  return (
-    <div className="d-flex h-100">
-      {/* Sidebar */}
-      <Sidebar 
-        sessions={chatSessions}
-        activeSessions={activeSessions}
-        currentSession={currentSession}
-        onSessionSelect={handleSessionSelect}
-        onNewChat={() => setShowNewChatModal(true)}
-        onSessionClose={handleSessionClose}
-        onDeleteSession={handleDeleteSession}
-        onManageColumns={handleManageColumns}
-      />
-
-      {/* Main Chat Area */}
-      <div className="flex-grow-1 d-flex flex-column">
-        {currentSession ? (
-          <MultiColumnChat 
-            session={currentSession}
-            onClose={() => handleSessionClose(currentSession.id)}
-          />
-        ) : (
-          <div className="d-flex align-items-center justify-content-center h-100">
-            <div className="text-center">
-              <div className="mb-4">
-                <div className="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle mb-3" style={{ width: '80px', height: '80px' }}>
-                  <MessageSquare size={32} className="text-white" />
-                </div>
-                <h3 className="text-primary mb-3">Welcome to AIHub</h3>
-                <p className="text-muted mb-4">Select a chat from the sidebar or start a new conversation</p>
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => setShowNewChatModal(true)}
-                >
-                  <MessageSquare size={16} className="me-2" />
-                  New Chat
-                </button>
-              </div>
+  // Show loading state while sessions are being fetched
+  if (chatSessions.length === 0 && !currentSession) {
+    return (
+      <div className="d-flex vh-100">
+        <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+          <div className="text-center">
+            <div className="spinner-border text-primary mb-3" role="status">
+              <span className="visually-hidden">Loading...</span>
             </div>
+            <p className="text-muted">Loading your chats...</p>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  // Show home page when no session is selected
+  if (!currentSession) {
+    return (
+      <div className="d-flex vh-100">
+        <Sidebar 
+          chatSessions={chatSessions}
+          activeSessions={activeSessions}
+          onNewChat={() => {
+            console.log('ChatPage: New Chat button clicked, opening modal');
+            setShowNewChatModal(true);
+          }}
+          onSelectSession={(session) => {
+            setCurrentSession(session);
+            addActiveSession(session);
+            navigate(`/chat/${session.id}`);
+          }}
+          onDeleteSession={handleDeleteSession}
+          onUpdateSession={handleUpdateSession}
+        />
+        
+        <div className="flex-grow-1 d-flex align-items-center justify-content-center bg-dark">
+          <div className="text-center text-white">
+            <MessageSquare size={64} className="mb-3 text-primary" />
+            <h2 className="mb-3">Welcome to AIHub</h2>
+            <p className="text-muted mb-4">Select a chat from the sidebar or create a new one to get started.</p>
+            <button 
+              className="btn btn-primary btn-lg"
+              onClick={() => setShowNewChatModal(true)}
+            >
+              <Plus size={20} className="me-2" />
+              New Chat
+            </button>
+          </div>
+        </div>
+
+        <NewChatModal 
+          show={showNewChatModal}
+          onHide={() => setShowNewChatModal(false)}
+          onChatCreated={handleNewChat}
+        />
+      </div>
+    );
+  }
+
+  // Show chat interface when session is selected
+  return (
+    <div className="d-flex vh-100">
+      <Sidebar 
+        chatSessions={chatSessions}
+        activeSessions={activeSessions}
+        onNewChat={() => {
+          console.log('ChatPage: New Chat button clicked, opening modal');
+          setShowNewChatModal(true);
+        }}
+        onSelectSession={(session) => {
+          setCurrentSession(session);
+          addActiveSession(session);
+          navigate(`/chat/${session.id}`);
+        }}
+        onDeleteSession={handleDeleteSession}
+        onUpdateSession={handleUpdateSession}
+      />
+      
+      <div className="flex-grow-1 d-flex flex-column">
+        <ChatInterface 
+          session={currentSession}
+          messages={messages[currentSession.id] || []}
+        />
       </div>
 
-      {/* New Chat Modal */}
       <NewChatModal 
         show={showNewChatModal}
         onHide={() => setShowNewChatModal(false)}
         onChatCreated={handleNewChat}
-      />
-      
-      {/* Column Management Modal */}
-      <ColumnManagementModal
-        isOpen={showColumnModal}
-        onClose={() => setShowColumnModal(false)}
-        session={selectedSession}
-        conversations={selectedSession ? conversations[selectedSession.id] || [] : []}
-        activeConversations={selectedSession ? activeConversations[selectedSession.id] || [] : []}
-        onUpdateColumn={handleUpdateColumn}
-        onDeleteColumn={handleDeleteColumn}
-        onShowColumn={handleShowColumn}
-        onHideColumn={handleHideColumn}
       />
     </div>
   );

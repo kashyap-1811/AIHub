@@ -4,6 +4,8 @@ import { Modal, Button, Form } from 'react-bootstrap';
 import { MessageSquare, Loader2 } from 'lucide-react';
 
 const NewChatModal = ({ show, onHide, onChatCreated }) => {
+  console.log('NewChatModal: Rendered with props:', { show, onHide: !!onHide, onChatCreated: !!onChatCreated });
+  
   const { createChatSession } = useChat();
   const [formData, setFormData] = useState({
     title: '',
@@ -28,27 +30,37 @@ const NewChatModal = ({ show, onHide, onChatCreated }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('NewChatModal: Form submitted with data:', formData);
+    
     if (!formData.title.trim()) {
+      console.error('NewChatModal: Title validation failed');
       setError('Please enter a chat title');
       return;
     }
 
+    console.log('NewChatModal: Setting loading state');
     setLoading(true);
     setError('');
 
     try {
+      console.log('NewChatModal: Calling createChatSession');
       const result = await createChatSession(formData.title.trim(), formData.serviceName);
+      console.log('NewChatModal: createChatSession result:', result);
       
       if (result.success) {
-        onChatCreated(result.session);
+        console.log('NewChatModal: Chat created successfully, calling onChatCreated');
+        onChatCreated(result.data);
         setFormData({ title: '', serviceName: 'ChatGPT' });
         onHide();
       } else {
+        console.error('NewChatModal: Chat creation failed:', result.error);
         setError(result.error || 'Failed to create chat');
       }
     } catch (error) {
+      console.error('NewChatModal: Unexpected error:', error);
       setError('An unexpected error occurred');
     } finally {
+      console.log('NewChatModal: Setting loading to false');
       setLoading(false);
     }
   };

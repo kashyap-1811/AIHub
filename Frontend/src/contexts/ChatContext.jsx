@@ -1,93 +1,73 @@
-import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react';
 import { chatAPI } from '../services/api';
-
-// Token retrieval function (same as AuthContext)
-const getTokenFromStorage = () => {
-  try {
-    return sessionStorage.getItem('token') || localStorage.getItem('token');
-  } catch (error) {
-    console.error('Failed to retrieve token:', error);
-    return null;
-  }
-};
 
 const ChatContext = createContext();
 
+// Initial state
 const initialState = {
   chatSessions: [],
   activeSessions: [],
   messages: {},
-  conversations: {},
-  activeConversations: {},
-  conversationMessages: {},
   loading: false,
-  sendingMessage: false,
   error: null,
   sessionLoadingStates: {},
-  lastActivity: {},
+  lastActivity: {}
 };
 
+// Action types
+const actionTypes = {
+  SET_LOADING: 'SET_LOADING',
+  CLEAR_ERROR: 'CLEAR_ERROR',
+  SET_ERROR: 'SET_ERROR',
+  SET_CHAT_SESSIONS: 'SET_CHAT_SESSIONS',
+  ADD_CHAT_SESSION: 'ADD_CHAT_SESSION',
+  UPDATE_CHAT_SESSION: 'UPDATE_CHAT_SESSION',
+  REMOVE_CHAT_SESSION: 'REMOVE_CHAT_SESSION',
+  SET_ACTIVE_SESSIONS: 'SET_ACTIVE_SESSIONS',
+  ADD_ACTIVE_SESSION: 'ADD_ACTIVE_SESSION',
+  REMOVE_ACTIVE_SESSION: 'REMOVE_ACTIVE_SESSION',
+  SET_MESSAGES: 'SET_MESSAGES',
+  ADD_MESSAGE: 'ADD_MESSAGE',
+  SET_SESSION_LOADING: 'SET_SESSION_LOADING',
+  UPDATE_LAST_ACTIVITY: 'UPDATE_LAST_ACTIVITY'
+};
+
+// Reducer
 const chatReducer = (state, action) => {
   switch (action.type) {
-    case 'SET_LOADING':
-      return { 
-        ...state, 
-        loading: action.payload,
-        error: action.payload ? null : state.error 
-      };
-      
-    case 'SET_SENDING_MESSAGE':
-      return { 
-        ...state, 
-        sendingMessage: action.payload,
-        error: action.payload ? null : state.error 
-      };
-      
-    case 'SET_ERROR':
-      return { 
-        ...state, 
-        error: action.payload, 
-        loading: false, 
-        sendingMessage: false 
-      };
-      
-    case 'CLEAR_ERROR':
+    case actionTypes.SET_LOADING:
+      return { ...state, loading: action.payload };
+    
+    case actionTypes.CLEAR_ERROR:
       return { ...state, error: null };
-      
-    case 'SET_CHAT_SESSIONS':
-      return { 
-        ...state, 
-        chatSessions: Array.isArray(action.payload) ? action.payload : [],
-        loading: false,
-        error: null
-      };
-      
-    case 'ADD_CHAT_SESSION':
-      console.log('ADD_CHAT_SESSION reducer called with:', action.payload);
-      const sessionExists = state.chatSessions.some(session => session.id === action.payload.id);
-      if (sessionExists) {
-        console.log('Session already exists, skipping add');
-        return { ...state, loading: false };
+    
+    case actionTypes.SET_ERROR:
+      return { ...state, error: action.payload, loading: false };
+    
+    case actionTypes.SET_CHAT_SESSIONS:
+      return { ...state, chatSessions: action.payload };
+    
+    case actionTypes.ADD_CHAT_SESSION:
+      const existingSession = state.chatSessions.find(session => session.id === action.payload.id);
+      if (existingSession) {
+        return state;
       }
-      console.log('Adding new session to chatSessions');
-      return { 
-        ...state, 
-        chatSessions: [action.payload, ...state.chatSessions],
-        loading: false,
-        error: null
+      return {
+        ...state,
+        chatSessions: [action.payload, ...state.chatSessions]
       };
-      
-    case 'UPDATE_CHAT_SESSION':
+    
+    case actionTypes.UPDATE_CHAT_SESSION:
       return {
         ...state,
         chatSessions: state.chatSessions.map(session =>
-          session.id === action.payload.id 
+          session.id === action.payload.id
             ? { ...session, ...action.payload.updates }
             : session
         )
       };
-      
-    case 'REMOVE_CHAT_SESSION':
+    
+    case actionTypes.REMOVE_CHAT_SESSION:
       return {
         ...state,
         chatSessions: state.chatSessions.filter(session => session.id !== action.payload),
@@ -102,499 +82,307 @@ const chatReducer = (state, action) => {
           Object.entries(state.lastActivity).filter(([sessionId]) => sessionId !== action.payload)
         )
       };
-      
-    case 'SET_MESSAGES':
-      return {
-        ...state,
-        messages: {
-          ...state.messages,
-          [action.payload.sessionId]: Array.isArray(action.payload.messages) 
-            ? action.payload.messages 
-            : []
-        },
-        loading: false,
-        sessionLoadingStates: {
-          ...state.sessionLoadingStates,
-          [action.payload.sessionId]: false
-        }
-      };
-      
-    case 'ADD_MESSAGE':
-      const { sessionId, message } = action.payload;
-      if (!sessionId || !message) return state;
-      
-      return {
-        ...state,
-        messages: {
-          ...state.messages,
-          [sessionId]: [
-            ...(state.messages[sessionId] || []), 
-            { ...message, id: message.id || Date.now(), timestamp: message.timestamp || new Date().toISOString() }
-          ]
-        },
-        lastActivity: {
-          ...state.lastActivity,
-          [sessionId]: new Date().toISOString()
-        }
-      };
-      
-    case 'UPDATE_MESSAGE':
-      const { sessionId: updateSessionId, messageId, updates } = action.payload;
-      return {
-        ...state,
-        messages: {
-          ...state.messages,
-          [updateSessionId]: (state.messages[updateSessionId] || []).map(msg =>
-            msg.id === messageId ? { ...msg, ...updates } : msg
-          )
-        }
-      };
-      
-    case 'ADD_ACTIVE_SESSION':
+    
+    case actionTypes.SET_ACTIVE_SESSIONS:
+      return { ...state, activeSessions: action.payload };
+    
+    case actionTypes.ADD_ACTIVE_SESSION:
       const isAlreadyActive = state.activeSessions.some(session => session.id === action.payload.id);
-      if (isAlreadyActive) return state;
-      
+      if (isAlreadyActive) {
+        return state;
+      }
       return {
         ...state,
-        activeSessions: [...state.activeSessions, action.payload],
-        lastActivity: {
-          ...state.lastActivity,
-          [action.payload.id]: new Date().toISOString()
-        }
+        activeSessions: [action.payload, ...state.activeSessions]
       };
-      
-    case 'REMOVE_ACTIVE_SESSION':
+    
+    case actionTypes.REMOVE_ACTIVE_SESSION:
       return {
         ...state,
         activeSessions: state.activeSessions.filter(session => session.id !== action.payload)
       };
-      
-    case 'UPDATE_ACTIVE_SESSION':
+    
+    case actionTypes.SET_MESSAGES:
       return {
         ...state,
-        activeSessions: state.activeSessions.map(session =>
-          session.id === action.payload.id 
-            ? { ...session, ...action.payload.updates }
-            : session
-        )
-      };
-
-    // Conversation cases
-    case 'SET_CONVERSATIONS':
-      return {
-        ...state,
-        conversations: {
-          ...state.conversations,
-          [action.payload.sessionId]: Array.isArray(action.payload.conversations) 
-            ? action.payload.conversations 
-            : []
+        messages: {
+          ...state.messages,
+          [action.payload.sessionId]: action.payload.messages
         }
       };
-
-    case 'ADD_CONVERSATION':
-      const { sessionId: addSessionId, conversation } = action.payload;
+    
+    case actionTypes.ADD_MESSAGE:
+      const sessionId = action.payload.sessionId;
+      const currentMessages = state.messages[sessionId] || [];
       return {
         ...state,
-        conversations: {
-          ...state.conversations,
-          [addSessionId]: [
-            ...(state.conversations[addSessionId] || []),
-            conversation
-          ]
+        messages: {
+          ...state.messages,
+          [sessionId]: [...currentMessages, action.payload.message]
         }
       };
-
-    case 'REMOVE_CONVERSATION':
-      const { sessionId: removeSessionId, conversationId } = action.payload;
+    
+    case actionTypes.SET_SESSION_LOADING:
       return {
         ...state,
-        conversations: {
-          ...state.conversations,
-          [removeSessionId]: (state.conversations[removeSessionId] || []).filter(c => c.id !== conversationId)
-        },
-        activeConversations: {
-          ...state.activeConversations,
-          [removeSessionId]: (state.activeConversations[removeSessionId] || []).filter(c => c.id !== conversationId)
+        sessionLoadingStates: {
+          ...state.sessionLoadingStates,
+          [action.payload.sessionId]: action.payload.loading
         }
       };
-
-    case 'ADD_ACTIVE_CONVERSATION':
-      const { sessionId: activeSessionId, conversation: activeConversation } = action.payload;
-      const currentActiveConversations = state.activeConversations[activeSessionId] || [];
-      const isConversationAlreadyActive = currentActiveConversations.some(conv => conv.id === activeConversation.id);
-      
-      if (isConversationAlreadyActive) {
-        return state;
-      }
-      
+    
+    case actionTypes.UPDATE_LAST_ACTIVITY:
       return {
         ...state,
-        activeConversations: {
-          ...state.activeConversations,
-          [activeSessionId]: [
-            ...currentActiveConversations,
-            activeConversation
-          ]
+        lastActivity: {
+          ...state.lastActivity,
+          [action.payload.sessionId]: action.payload.timestamp
         }
       };
-
-    case 'REMOVE_ACTIVE_CONVERSATION':
-      const { sessionId: removeActiveSessionId, conversationId: removeActiveConversationId } = action.payload;
-      return {
-        ...state,
-        activeConversations: {
-          ...state.activeConversations,
-          [removeActiveSessionId]: (state.activeConversations[removeActiveSessionId] || []).filter(c => c.id !== removeActiveConversationId)
-        }
-      };
-      
-    case 'SET_ACTIVE_CONVERSATIONS':
-      const { sessionId: setActiveSessionId, conversations: setActiveConversations } = action.payload;
-      return {
-        ...state,
-        activeConversations: {
-          ...state.activeConversations,
-          [setActiveSessionId]: setActiveConversations || []
-        }
-      };
-      
-    case 'SET_CONVERSATION_MESSAGES':
-      const { conversationId: setConvId, messages: conversationMessages } = action.payload;
-      return {
-        ...state,
-        conversationMessages: {
-          ...state.conversationMessages,
-          [setConvId]: conversationMessages || []
-        }
-      };
-      
-    case 'ADD_TEMPORARY_MESSAGE':
-      const { conversationId: tempConvId, message: tempMessage } = action.payload;
-      return {
-        ...state,
-        conversationMessages: {
-          ...state.conversationMessages,
-          [tempConvId]: [...(state.conversationMessages[tempConvId] || []), tempMessage]
-        }
-      };
-      
-    case 'REMOVE_TEMPORARY_MESSAGE':
-      const { conversationId: removeTempConvId, messageId: tempMessageId } = action.payload;
-      return {
-        ...state,
-        conversationMessages: {
-          ...state.conversationMessages,
-          [removeTempConvId]: (state.conversationMessages[removeTempConvId] || []).filter(msg => msg.id !== tempMessageId)
-        }
-      };
-      
-    case 'UPDATE_CONVERSATION':
-      const { conversationId: updateConvId, updates: conversationUpdates } = action.payload;
-      return {
-        ...state,
-        conversations: {
-          ...state.conversations,
-          [Object.keys(state.conversations).find(sessionId => 
-            state.conversations[sessionId]?.some(conv => conv.id === updateConvId)
-          )]: state.conversations[Object.keys(state.conversations).find(sessionId => 
-            state.conversations[sessionId]?.some(conv => conv.id === updateConvId)
-          )]?.map(conv => 
-            conv.id === updateConvId ? { ...conv, ...conversationUpdates } : conv
-          ) || []
-        },
-        activeConversations: {
-          ...state.activeConversations,
-          [Object.keys(state.activeConversations).find(sessionId => 
-            state.activeConversations[sessionId]?.some(conv => conv.id === updateConvId)
-          )]: state.activeConversations[Object.keys(state.activeConversations).find(sessionId => 
-            state.activeConversations[sessionId]?.some(conv => conv.id === updateConvId)
-          )]?.map(conv => 
-            conv.id === updateConvId ? { ...conv, ...conversationUpdates } : conv
-          ) || []
-        }
-      };
-      
-    case 'DELETE_CONVERSATION':
-      const { conversationId: deleteConvId } = action.payload;
-      const sessionIdToUpdate = Object.keys(state.conversations).find(sessionId => 
-        state.conversations[sessionId]?.some(conv => conv.id === deleteConvId)
-      );
-      
-      return {
-        ...state,
-        conversations: {
-          ...state.conversations,
-          [sessionIdToUpdate]: state.conversations[sessionIdToUpdate]?.filter(conv => conv.id !== deleteConvId) || []
-        },
-        activeConversations: {
-          ...state.activeConversations,
-          [sessionIdToUpdate]: state.activeConversations[sessionIdToUpdate]?.filter(conv => conv.id !== deleteConvId) || []
-        },
-        conversationMessages: {
-          ...state.conversationMessages,
-          [deleteConvId]: undefined
-        }
-      };
-      
+    
     default:
       return state;
   }
 };
 
+// Helper function to get token from storage
+const getTokenFromStorage = () => {
+  return localStorage.getItem('token');
+};
+
+// Error handling helper
+const handleError = (error, operation) => {
+  console.error(`Error ${operation}:`, error);
+  
+  if (error.name === 'AbortError') {
+    return 'Request was cancelled';
+  }
+  
+  if (error.response?.status === 401) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+    return 'Session expired. Please log in again.';
+  }
+  
+  if (error.response?.data?.message) {
+    return error.response.data.message;
+  }
+  
+  if (error.message) {
+    return error.message;
+  }
+  
+  return `Failed to ${operation.toLowerCase()}`;
+};
+
 export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
-  const activeSessionsRef = useRef([]);
-  const abortControllerRef = useRef(new AbortController());
+  const abortControllerRef = useRef(null);
 
-  // Sync ref with state for optimal performance
-  useEffect(() => {
-    activeSessionsRef.current = state.activeSessions;
-  }, [state.activeSessions]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current.abort();
-    };
-  }, []);
-
-  // Enhanced error handling utility
-  const handleError = useCallback((error, operation = 'Operation') => {
-    console.error(`${operation} failed:`, error);
-    const errorMessage = error.response?.data?.message || 
-                        error.message || 
-                        `${operation} failed. Please try again.`;
-    dispatch({ type: 'SET_ERROR', payload: errorMessage });
-    return errorMessage;
-  }, []);
-
-  // Fetch chat sessions
+  // Chat session management
   const fetchChatSessions = useCallback(async () => {
-    console.log('Fetching chat sessions...');
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'CLEAR_ERROR' });
+      console.log('ChatContext: fetchChatSessions called');
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      console.log('ChatContext: Current token:', token ? 'Present' : 'Missing');
       
+      dispatch({ type: actionTypes.SET_LOADING, payload: true });
+      dispatch({ type: actionTypes.CLEAR_ERROR });
+      
+      console.log('ChatContext: Calling chatAPI.getChatSessions()');
       const response = await chatAPI.getChatSessions();
+      console.log('ChatContext: API response:', response);
       
-      console.log('Chat sessions fetched:', response.data);
+      const sessions = response.data || response;
+      console.log('ChatContext: Sessions data:', sessions);
       
-      dispatch({ 
-        type: 'SET_CHAT_SESSIONS', 
-        payload: response.data 
-      });
+      dispatch({ type: actionTypes.SET_CHAT_SESSIONS, payload: sessions });
+      console.log('ChatContext: Sessions dispatched to state');
       
-      return { success: true, data: response.data };
+      return { success: true, data: sessions };
     } catch (error) {
-      if (error.name === 'AbortError') return { success: false, aborted: true };
-      
-      handleError(error, 'Fetching chat sessions');
-      return { success: false, error: error.response?.data?.message };
+      console.error('ChatContext: Error fetching chat sessions:', error);
+      const errorMessage = handleError(error, 'Fetching chat sessions');
+      dispatch({ type: actionTypes.SET_ERROR, payload: errorMessage });
+      return { success: false, error: errorMessage };
     }
-  }, [handleError]);
+  }, []);
 
-  // Create chat session
-  const createChatSession = useCallback(async (title, serviceName = null) => {
+  const createChatSession = useCallback(async (title, serviceName) => {
+    console.log('ChatContext: createChatSession called with:', { title, serviceName });
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    console.log('ChatContext: Current token for creation:', token ? 'Present' : 'Missing');
+    
     if (!title?.trim()) {
-      const error = 'Session title is required';
-      dispatch({ type: 'SET_ERROR', payload: error });
+      const error = 'Title is required';
+      console.error('ChatContext: Title validation failed');
+      dispatch({ type: actionTypes.SET_ERROR, payload: error });
       return { success: false, error };
     }
 
-    console.log('Creating chat session:', { title, serviceName });
-    
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'CLEAR_ERROR' });
+      console.log('ChatContext: Setting loading state and clearing errors');
+      dispatch({ type: actionTypes.SET_LOADING, payload: true });
+      dispatch({ type: actionTypes.CLEAR_ERROR });
       
-      const response = await chatAPI.createChatSession({
-        title: title.trim(),
-        serviceName
-      });
+      console.log('ChatContext: Calling chatAPI.createChatSession');
+      const response = await chatAPI.createChatSession({ title: title.trim(), serviceName });
+      console.log('ChatContext: API response:', response);
       
-      console.log('Chat session created successfully:', response.data);
+      const session = response.data || response;
+      console.log('ChatContext: Session data:', session);
       
-      dispatch({ 
-        type: 'ADD_CHAT_SESSION', 
-        payload: response.data 
-      });
+      dispatch({ type: actionTypes.ADD_CHAT_SESSION, payload: session });
+      console.log('ChatContext: Session added to state');
       
-      return { success: true, session: response.data };
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
+      
+      return { success: true, data: session };
     } catch (error) {
-      if (error.name === 'AbortError') return { success: false, aborted: true };
-      
+      console.error('ChatContext: Error creating chat session:', error);
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
       const errorMessage = handleError(error, 'Creating chat session');
       return { success: false, error: errorMessage };
     }
-  }, [handleError]);
-
-  // Fetch messages
-  const fetchMessages = useCallback(async (sessionId) => {
-    if (!sessionId) return { success: false, error: 'Session ID is required' };
-
-    try {
-      dispatch({ 
-        type: 'SET_SESSION_LOADING', 
-        payload: { sessionId, loading: true } 
-      });
-      
-      const response = await chatAPI.getMessages(sessionId);
-      
-      dispatch({ 
-        type: 'SET_MESSAGES', 
-        payload: { sessionId, messages: response.data } 
-      });
-      
-      return { success: true, data: response.data };
-    } catch (error) {
-      if (error.name === 'AbortError') return { success: false, aborted: true };
-      
-      dispatch({ 
-        type: 'SET_SESSION_LOADING', 
-        payload: { sessionId, loading: false } 
-      });
-      
-      const errorMessage = handleError(error, 'Fetching messages');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  // Send message
-  const sendMessage = useCallback(async (sessionId, serviceName, message) => {
-    if (!sessionId || !message?.trim()) {
-      const error = 'Session ID and message are required';
-      dispatch({ type: 'SET_ERROR', payload: error });
-      return { success: false, error };
-    }
-
-    const trimmedMessage = message.trim();
-    const userMessage = {
-      id: `temp-${Date.now()}`,
-      role: 'user',
-      content: trimmedMessage,
-      serviceName,
-      timestamp: new Date().toISOString(),
-      pending: true
-    };
-
-    try {
-      // Add user message immediately
-      dispatch({ 
-        type: 'ADD_MESSAGE', 
-        payload: { sessionId, message: userMessage } 
-      });
-
-      dispatch({ type: 'SET_SENDING_MESSAGE', payload: true });
-      dispatch({ type: 'CLEAR_ERROR' });
-      
-      const response = await chatAPI.sendMessage(sessionId, {
-        serviceName,
-        message: trimmedMessage
-      });
-      
-      // Update user message to remove pending state
-      dispatch({
-        type: 'UPDATE_MESSAGE',
-        payload: {
-          sessionId,
-          messageId: userMessage.id,
-          updates: { pending: false, id: response.data.userMessage?.id || userMessage.id }
-        }
-      });
-      
-      // Add AI message if received
-      if (response.data.aiMessage) {
-        dispatch({ 
-          type: 'ADD_MESSAGE', 
-          payload: { sessionId, message: response.data.aiMessage } 
-        });
-      }
-      
-      dispatch({ type: 'SET_SENDING_MESSAGE', payload: false });
-      return { success: true, data: response.data };
-      
-    } catch (error) {
-      if (error.name === 'AbortError') return { success: false, aborted: true };
-      
-      // Mark user message as failed
-      dispatch({
-        type: 'UPDATE_MESSAGE',
-        payload: {
-          sessionId,
-          messageId: userMessage.id,
-          updates: { pending: false, error: true }
-        }
-      });
-      
-      const errorMessage = handleError(error, 'Sending message');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  // Session management
-  const addActiveSession = useCallback((session) => {
-    if (!session?.id) return;
-
-    const isAlreadyActive = activeSessionsRef.current.some(s => s.id === session.id);
-    
-    if (!isAlreadyActive) {
-      dispatch({ type: 'ADD_ACTIVE_SESSION', payload: session });
-      
-      // Load messages if not already loaded
-      if (!state.messages[session.id]) {
-        fetchMessages(session.id);
-      }
-    }
-  }, [fetchMessages, state.messages]);
-
-  const removeActiveSession = useCallback((sessionId) => {
-    if (!sessionId) return;
-    dispatch({ type: 'REMOVE_ACTIVE_SESSION', payload: sessionId });
   }, []);
 
-  const updateActiveSession = useCallback((sessionId, updates) => {
-    if (!sessionId || !updates) return;
-    dispatch({ 
-      type: 'UPDATE_ACTIVE_SESSION', 
-      payload: { id: sessionId, updates } 
-    });
+  const updateChatSession = useCallback(async (sessionId, updates) => {
+    try {
+      dispatch({ type: actionTypes.SET_LOADING, payload: true });
+      dispatch({ type: actionTypes.CLEAR_ERROR });
+      
+      const updatedSession = await chatAPI.updateChatSession(sessionId, updates);
+      dispatch({ 
+        type: actionTypes.UPDATE_CHAT_SESSION, 
+        payload: { id: sessionId, updates: updatedSession } 
+      });
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
+      
+      return { success: true, data: updatedSession };
+    } catch (error) {
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
+      const errorMessage = handleError(error, 'Updating chat session');
+      return { success: false, error: errorMessage };
+    }
   }, []);
 
-  // Delete session
   const deleteChatSession = useCallback(async (sessionId) => {
     if (!sessionId) {
       const error = 'Session ID is required';
-      dispatch({ type: 'SET_ERROR', payload: error });
+      dispatch({ type: actionTypes.SET_ERROR, payload: error });
       return { success: false, error };
     }
 
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'CLEAR_ERROR' });
+      dispatch({ type: actionTypes.SET_LOADING, payload: true });
+      dispatch({ type: actionTypes.CLEAR_ERROR });
       
       await chatAPI.deleteChatSession(sessionId);
       
-      dispatch({ type: 'REMOVE_CHAT_SESSION', payload: sessionId });
+      dispatch({ type: actionTypes.REMOVE_CHAT_SESSION, payload: sessionId });
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
       return { success: true };
     } catch (error) {
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
       if (error.name === 'AbortError') return { success: false, aborted: true };
       
       const errorMessage = handleError(error, 'Deleting chat session');
       return { success: false, error: errorMessage };
     }
-  }, [handleError]);
+  }, []);
+
+  // Active session management
+  const addActiveSession = useCallback((session) => {
+    const isAlreadyActive = state.activeSessions.some(s => s.id === session.id);
+    if (isAlreadyActive) {
+      return;
+    }
+    dispatch({ type: actionTypes.ADD_ACTIVE_SESSION, payload: session });
+  }, [state.activeSessions]);
+
+  const removeActiveSession = useCallback((sessionId) => {
+    dispatch({ type: actionTypes.REMOVE_ACTIVE_SESSION, payload: sessionId });
+  }, []);
+
+  // Message management
+  const fetchMessages = useCallback(async (sessionId) => {
+    if (!sessionId) return { success: false, error: 'Session ID is required' };
+
+    try {
+      dispatch({ type: actionTypes.SET_SESSION_LOADING, payload: { sessionId, loading: true } });
+      dispatch({ type: actionTypes.CLEAR_ERROR });
+      
+      const messages = await chatAPI.getMessages(sessionId);
+      
+      dispatch({ 
+        type: actionTypes.SET_MESSAGES, 
+        payload: { sessionId, messages } 
+      });
+      
+      dispatch({ type: actionTypes.SET_SESSION_LOADING, payload: { sessionId, loading: false } });
+      return { success: true, data: messages };
+    } catch (error) {
+      dispatch({ type: actionTypes.SET_SESSION_LOADING, payload: { sessionId, loading: false } });
+      const errorMessage = handleError(error, 'Fetching messages');
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
+  const sendMessage = useCallback(async (sessionId, message) => {
+    if (!sessionId || !message?.trim()) {
+      const error = 'Session ID and message are required';
+      dispatch({ type: actionTypes.SET_ERROR, payload: error });
+      return { success: false, error };
+    }
+
+    try {
+      dispatch({ type: actionTypes.SET_SESSION_LOADING, payload: { sessionId, loading: true } });
+      dispatch({ type: actionTypes.CLEAR_ERROR });
+      
+      // Add user message optimistically
+      const userMessage = {
+        id: `temp-${Date.now()}`,
+        content: message.trim(),
+        role: 'user',
+        serviceName: state.chatSessions.find(s => s.id === sessionId)?.serviceName || 'ChatGPT',
+        createdAt: new Date().toISOString()
+      };
+      
+      dispatch({ 
+        type: actionTypes.ADD_MESSAGE, 
+        payload: { sessionId, message: userMessage } 
+      });
+
+      // Send to API
+      const result = await chatAPI.sendMessage(sessionId, { message: message.trim() });
+      
+      // Remove temporary user message and add both real messages
+      const currentMessages = state.messages[sessionId] || [];
+      const filteredMessages = currentMessages.filter(m => m.id !== userMessage.id);
+      
+      dispatch({ 
+        type: actionTypes.SET_MESSAGES, 
+        payload: { sessionId, messages: [...filteredMessages, result.userMessage, result.assistantMessage] } 
+      });
+      
+      // Update last activity
+      dispatch({ 
+        type: actionTypes.UPDATE_LAST_ACTIVITY, 
+        payload: { sessionId, timestamp: new Date().toISOString() } 
+      });
+      
+      dispatch({ type: actionTypes.SET_SESSION_LOADING, payload: { sessionId, loading: false } });
+      return { success: true, data: result };
+    } catch (error) {
+      dispatch({ type: actionTypes.SET_SESSION_LOADING, payload: { sessionId, loading: false } });
+      const errorMessage = handleError(error, 'Sending message');
+      return { success: false, error: errorMessage };
+    }
+  }, [state.messages, state.chatSessions]);
 
   // Utility functions
   const clearError = useCallback(() => {
-    dispatch({ type: 'CLEAR_ERROR' });
-  }, []);
-
-  const addMessageToSession = useCallback((sessionId, message) => {
-    if (!sessionId || !message) return;
-    dispatch({ 
-      type: 'ADD_MESSAGE', 
-      payload: { sessionId, message } 
-    });
+    dispatch({ type: actionTypes.CLEAR_ERROR });
   }, []);
 
   // Legacy methods for compatibility
@@ -602,350 +390,38 @@ export const ChatProvider = ({ children }) => {
   const openChatSession = useCallback((session) => addActiveSession(session), [addActiveSession]);
   const closeChatSession = useCallback((sessionId) => removeActiveSession(sessionId), [removeActiveSession]);
 
-  // Conversation management
-  const fetchConversations = useCallback(async (sessionId) => {
-    if (!sessionId) return { success: false, error: 'Session ID is required' };
-
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'CLEAR_ERROR' });
-      
-      const response = await fetch(`http://localhost:3000/api/chat/sessions/${sessionId}/conversations`, {
-        headers: {
-          'Authorization': `Bearer ${getTokenFromStorage()}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const conversations = await response.json();
-      
-      dispatch({ 
-        type: 'SET_CONVERSATIONS', 
-        payload: { sessionId, conversations } 
-      });
-      
-      // Only set active conversations if none are currently active
-      const currentActiveConversations = state.activeConversations[sessionId] || [];
-      console.log('fetchConversations - currentActiveConversations:', currentActiveConversations.length);
-      if (currentActiveConversations.length === 0) {
-        console.log('Setting active conversations from fetchConversations:', conversations);
-        dispatch({ 
-          type: 'SET_ACTIVE_CONVERSATIONS', 
-          payload: { sessionId, conversations } 
-        });
-      } else {
-        console.log('Active conversations already exist, skipping SET_ACTIVE_CONVERSATIONS');
-      }
-      
-      return { success: true, data: conversations };
-    } catch (error) {
-      const errorMessage = handleError(error, 'Fetching conversations');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  const createConversation = useCallback(async (sessionId, title, serviceName) => {
-    if (!sessionId || !title?.trim()) {
-      const error = 'Session ID and title are required';
-      dispatch({ type: 'SET_ERROR', payload: error });
-      return { success: false, error };
-    }
-
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'CLEAR_ERROR' });
-      
-      const response = await fetch(`http://localhost:3000/api/chat/sessions/${sessionId}/conversations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getTokenFromStorage()}`
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          serviceName
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const conversation = await response.json();
-      
-      console.log('Adding conversation to conversations:', conversation);
-      dispatch({ 
-        type: 'ADD_CONVERSATION', 
-        payload: { sessionId, conversation } 
-      });
-      
-      // Add to active conversations (visible columns) - this will be the first column
-      console.log('Adding conversation to active conversations:', conversation);
-      dispatch({ 
-        type: 'ADD_ACTIVE_CONVERSATION', 
-        payload: { sessionId, conversation } 
-      });
-      
-      return { success: true, data: conversation };
-    } catch (error) {
-      const errorMessage = handleError(error, 'Creating conversation');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  const addTemporaryMessage = useCallback((conversationId, message) => {
-    dispatch({ 
-      type: 'ADD_TEMPORARY_MESSAGE', 
-      payload: { conversationId, message } 
-    });
-  }, []);
-
-  const removeTemporaryMessage = useCallback((conversationId, messageId) => {
-    dispatch({ 
-      type: 'REMOVE_TEMPORARY_MESSAGE', 
-      payload: { conversationId, messageId } 
-    });
-  }, []);
-
-  const updateConversationTitle = useCallback(async (conversationId, newTitle) => {
-    if (!conversationId || !newTitle?.trim()) {
-      return { success: false, error: 'Conversation ID and title are required' };
-    }
-
-    try {
-      const response = await chatAPI.updateConversation(conversationId, {
-        title: newTitle.trim()
-      });
-      
-      const updatedConversation = response.data;
-      
-      dispatch({ 
-        type: 'UPDATE_CONVERSATION', 
-        payload: { conversationId, updates: { title: updatedConversation.title } } 
-      });
-      
-      return { success: true, data: updatedConversation };
-    } catch (error) {
-      const errorMessage = handleError(error, 'Updating conversation title');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  const deleteConversation = useCallback(async (conversationId) => {
-    if (!conversationId) {
-      return { success: false, error: 'Conversation ID is required' };
-    }
-
-    try {
-      await chatAPI.deleteConversation(conversationId);
-      
-      dispatch({ 
-        type: 'DELETE_CONVERSATION', 
-        payload: { conversationId } 
-      });
-      
-      return { success: true };
-    } catch (error) {
-      const errorMessage = handleError(error, 'Deleting conversation');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  const loadConversationMessages = useCallback(async (conversationId) => {
-    if (!conversationId) return { success: false, error: 'Conversation ID is required' };
-
-    try {
-      const response = await fetch(`http://localhost:3000/api/chat/conversations/${conversationId}/messages`, {
-        headers: {
-          'Authorization': `Bearer ${getTokenFromStorage()}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const messages = await response.json();
-      
-      dispatch({ 
-        type: 'SET_CONVERSATION_MESSAGES', 
-        payload: { conversationId, messages } 
-      });
-      
-      return { success: true, data: messages };
-    } catch (error) {
-      const errorMessage = handleError(error, 'Loading conversation messages');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  const sendMessageToConversation = useCallback(async (conversationId, serviceName, message) => {
-    if (!conversationId || !message?.trim()) {
-      const error = 'Conversation ID and message are required';
-      dispatch({ type: 'SET_ERROR', payload: error });
-      return { success: false, error };
-    }
-
-    try {
-      dispatch({ type: 'SET_SENDING_MESSAGE', payload: true });
-      dispatch({ type: 'CLEAR_ERROR' });
-      
-      const response = await fetch(`http://localhost:3000/api/chat/conversations/${conversationId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getTokenFromStorage()}`
-        },
-        body: JSON.stringify({
-          serviceName,
-          message: message.trim()
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      dispatch({ type: 'SET_SENDING_MESSAGE', payload: false });
-      return { success: true, data: result };
-    } catch (error) {
-      const errorMessage = handleError(error, 'Sending message to conversation');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  const broadcastMessage = useCallback(async (sessionId, message, serviceNames) => {
-    if (!sessionId || !message?.trim() || !serviceNames?.length) {
-      const error = 'Session ID, message, and service names are required';
-      dispatch({ type: 'SET_ERROR', payload: error });
-      return { success: false, error };
-    }
-
-    try {
-      dispatch({ type: 'SET_SENDING_MESSAGE', payload: true });
-      dispatch({ type: 'CLEAR_ERROR' });
-      
-      const response = await fetch(`http://localhost:3000/api/chat/sessions/${sessionId}/broadcast`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getTokenFromStorage()}`
-        },
-        body: JSON.stringify({
-          message: message.trim(),
-          serviceNames
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      dispatch({ type: 'SET_SENDING_MESSAGE', payload: false });
-      return { success: true, data: result };
-    } catch (error) {
-      const errorMessage = handleError(error, 'Broadcasting message');
-      return { success: false, error: errorMessage };
-    }
-  }, [handleError]);
-
-  const addActiveConversation = useCallback((sessionId, conversation) => {
-    if (!sessionId || !conversation?.id) return;
-    dispatch({ type: 'ADD_ACTIVE_CONVERSATION', payload: { sessionId, conversation } });
-  }, []);
-
-  const removeActiveConversation = useCallback((sessionId, conversationId) => {
-    if (!sessionId || !conversationId) return;
-    dispatch({ type: 'REMOVE_ACTIVE_CONVERSATION', payload: { sessionId, conversationId } });
-  }, []);
-
-  const showColumn = useCallback((sessionId, conversationId) => {
-    if (!sessionId || !conversationId) return;
+  const contextValue = {
+    // State
+    chatSessions: state.chatSessions,
+    activeSessions: state.activeSessions,
+    messages: state.messages,
+    loading: state.loading,
+    error: state.error,
+    sessionLoadingStates: state.sessionLoadingStates,
+    lastActivity: state.lastActivity,
     
-    // Find the conversation in the conversations array
-    const sessionConversations = state.conversations[sessionId] || [];
-    const conversation = sessionConversations.find(conv => conv.id === conversationId);
-    
-    if (conversation) {
-      dispatch({ type: 'ADD_ACTIVE_CONVERSATION', payload: { sessionId, conversation } });
-    }
-  }, [state.conversations]);
-
-  const hideColumn = useCallback((sessionId, conversationId) => {
-    if (!sessionId || !conversationId) return;
-    dispatch({ type: 'REMOVE_ACTIVE_CONVERSATION', payload: { sessionId, conversationId } });
-  }, []);
-
-  // Context value
-  const contextValue = useMemo(() => ({
-    ...state,
-    // Core methods
+    // Chat session methods
     fetchChatSessions,
     createChatSession,
-    fetchMessages,
-    sendMessage,
+    updateChatSession,
     deleteChatSession,
-    // Session management
+    
+    // Active session methods
     addActiveSession,
     removeActiveSession,
-    updateActiveSession,
-    // Conversation methods
-    fetchConversations,
-    createConversation,
-    loadConversationMessages,
-    sendMessageToConversation,
-    broadcastMessage,
-    addActiveConversation,
-    removeActiveConversation,
-    showColumn,
-    hideColumn,
-    addTemporaryMessage,
-    removeTemporaryMessage,
-    updateConversationTitle,
-    deleteConversation,
+    
+    // Message methods
+    fetchMessages,
+    sendMessage,
+    
     // Utility methods
     clearError,
-    addMessageToSession,
-    // Legacy methods for compatibility
+    
+    // Legacy methods
     loadChatSessions,
     openChatSession,
     closeChatSession
-  }), [
-    state,
-    fetchChatSessions,
-    createChatSession,
-    fetchMessages,
-    sendMessage,
-    deleteChatSession,
-    addActiveSession,
-    removeActiveSession,
-    updateActiveSession,
-    fetchConversations,
-    createConversation,
-    loadConversationMessages,
-    sendMessageToConversation,
-    broadcastMessage,
-    addActiveConversation,
-    removeActiveConversation,
-    showColumn,
-    hideColumn,
-    addTemporaryMessage,
-    removeTemporaryMessage,
-    updateConversationTitle,
-    deleteConversation,
-    clearError,
-    addMessageToSession,
-    loadChatSessions,
-    openChatSession,
-    closeChatSession
-  ]);
+  };
 
   return (
     <ChatContext.Provider value={contextValue}>

@@ -54,30 +54,13 @@ namespace AIHub.API.Repositories
             var chatSession = await _context.ChatSessions.FindAsync(id);
             if (chatSession != null)
             {
-                // Delete all conversations and their messages first
-                var conversations = await _context.Conversations
-                    .Where(c => c.ChatSessionId == id)
-                    .ToListAsync();
-                
-                foreach (var conversation in conversations)
-                {
-                    // Delete all messages for this conversation
-                    var messages = await _context.Messages
-                        .Where(m => m.ConversationId == conversation.Id)
-                        .ToListAsync();
-                    _context.Messages.RemoveRange(messages);
-                }
-                
-                // Delete all conversations
-                _context.Conversations.RemoveRange(conversations);
-                
-                // Delete all messages directly associated with the chat session
+                // Delete all messages associated with the chat session
                 var sessionMessages = await _context.Messages
                     .Where(m => m.ChatSessionId == id)
                     .ToListAsync();
                 _context.Messages.RemoveRange(sessionMessages);
                 
-                // Finally delete the chat session
+                // Delete the chat session
                 _context.ChatSessions.Remove(chatSession);
                 await _context.SaveChangesAsync();
             }

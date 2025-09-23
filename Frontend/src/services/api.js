@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: 'https://localhost:7001',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -13,6 +13,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    console.log('API Request:', config.url, 'Token:', token ? 'Present' : 'Missing');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,8 +26,12 @@ api.interceptors.request.use(
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API Response:', response.config.url, 'Status:', response.status);
+    return response;
+  },
   (error) => {
+    console.error('API Error:', error.config?.url, 'Status:', error.response?.status, 'Message:', error.message);
     if (error.response?.status === 401) {
       // Token expired or invalid
       sessionStorage.removeItem('token');
@@ -57,17 +62,10 @@ export const apiKeyAPI = {
 export const chatAPI = {
   getChatSessions: () => api.get('/api/chat/sessions'),
   createChatSession: (sessionData) => api.post('/api/chat/sessions', sessionData),
+  updateChatSession: (sessionId, updateData) => api.put(`/api/chat/sessions/${sessionId}`, updateData),
   getMessages: (sessionId) => api.get(`/api/chat/sessions/${sessionId}/messages`),
   sendMessage: (sessionId, messageData) => api.post(`/api/chat/sessions/${sessionId}/messages`, messageData),
-  broadcastMessage: (messageData) => api.post('/api/chat/broadcast', messageData),
   deleteChatSession: (sessionId) => api.delete(`/api/chat/sessions/${sessionId}`),
-  // Conversation management
-  getConversations: (sessionId) => api.get(`/api/chat/sessions/${sessionId}/conversations`),
-  createConversation: (sessionId, conversationData) => api.post(`/api/chat/sessions/${sessionId}/conversations`, conversationData),
-  getConversationMessages: (conversationId) => api.get(`/api/chat/conversations/${conversationId}/messages`),
-  sendMessageToConversation: (conversationId, messageData) => api.post(`/api/chat/conversations/${conversationId}/messages`, messageData),
-  updateConversation: (conversationId, updateData) => api.put(`/api/chat/conversations/${conversationId}`, updateData),
-  deleteConversation: (conversationId) => api.delete(`/api/chat/conversations/${conversationId}`),
 };
 
 export default api;
