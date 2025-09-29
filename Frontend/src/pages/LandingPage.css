@@ -1,0 +1,145 @@
+/* LandingPage Styles */
+.landing-page-container {
+  position: relative;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.landing-page-content {
+  position: relative;
+  z-index: 1;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+/* Ensure proper scrolling */
+.landing-page-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.landing-page-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.landing-page-container::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+  border-radius: 4px;
+}
+
+.landing-page-container::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-hover);
+}
+
+/* Smooth scrolling */
+.landing-page-container {
+  scroll-behavior: smooth;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .landing-page-content {
+    padding: 1rem 0;
+  }
+}
+
+/* Ensure content doesn't get cut off */
+.landing-page-container .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Feature section spacing */
+.landing-page-container .feature-steps-container {
+  margin-bottom: 3rem;
+}
+
+/* Card spacing */
+.landing-page-container .card {
+  margin-bottom: 2rem;
+}
+
+/* Last element spacing */
+.landing-page-container .card:last-child {
+  margin-bottom: 4rem;
+}
+
+/* Hero section */
+.landing-hero {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Login button hover effects */
+.login-btn {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(16, 163, 127, 0.4) !important;
+}
+
+.login-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 20px rgba(16, 163, 127, 0.3) !important;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.login-btn:hover::before {
+  left: 100%;
+}
+
+/* Ensure proper height for scrolling */
+.landing-page-container {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Fix for BackgroundPaths integration */
+.landing-page-container .background-paths-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landing-page-content {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+/* Content sections */
+.landing-section {
+  margin-bottom: 4rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure all content is scrollable */
+.landing-page-container > * {
+  position: relative;
+  z-index: 1;
+}

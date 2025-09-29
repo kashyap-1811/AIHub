@@ -1,0 +1,39 @@
+<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#000000" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- AI Icon from Icons8 -->
+  <g transform="translate(25, 25)">
+    <!-- AI Brain/Neural Network Icon -->
+    <path 
+      d="M25 5C15 5 7 13 7 23C7 28 9 32 12 35C10 38 8 42 8 47C8 52 10 55 13 57C11 60 9 64 9 69C9 74 11 77 14 79C12 82 10 86 10 91C10 96 12 99 15 101C18 99 20 96 20 91C20 86 18 82 16 79C19 77 21 74 21 69C21 64 19 60 17 57C20 55 22 52 22 47C22 42 20 38 18 35C21 32 23 28 23 23C23 13 15 5 25 5Z" 
+      fill="#ffffff" 
+      stroke="#ffffff" 
+      stroke-width="1"
+      filter="url(#glow)"
+    />
+    <!-- Neural connections -->
+    <circle cx="15" cy="20" r="2" fill="#ffffff"/>
+    <circle cx="25" cy="15" r="2" fill="#ffffff"/>
+    <circle cx="35" cy="20" r="2" fill="#ffffff"/>
+    <circle cx="20" cy="30" r="2" fill="#ffffff"/>
+    <circle cx="30" cy="30" r="2" fill="#ffffff"/>
+    
+    <!-- Connection lines -->
+    <line x1="15" y1="20" x2="25" y2="15" stroke="#ffffff" stroke-width="1"/>
+    <line x1="25" y1="15" x2="35" y2="20" stroke="#ffffff" stroke-width="1"/>
+    <line x1="15" y1="20" x2="20" y2="30" stroke="#ffffff" stroke-width="1"/>
+    <line x1="35" y1="20" x2="30" y2="30" stroke="#ffffff" stroke-width="1"/>
+    <line x1="20" y1="30" x2="30" y2="30" stroke="#ffffff" stroke-width="1"/>
+  </g>
+</svg>

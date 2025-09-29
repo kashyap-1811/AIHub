@@ -1,0 +1,94 @@
+/* Textarea Component Styles - Dark Theme */
+
+.form-textarea {
+  display: flex;
+  min-height: 80px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
+  background: var(--bg-tertiary);
+}
+
+.form-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.form-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background: var(--bg-primary);
+}
+
+/* Textarea Variants */
+.form-textarea-sm {
+  min-height: 60px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.form-textarea-lg {
+  min-height: 120px;
+  padding: 1rem;
+  font-size: 1rem;
+}
+
+/* Dark Theme Enhancements */
+.form-textarea {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.form-textarea:focus {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.3);
+}
+
+.form-textarea:disabled {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+  opacity: 0.5;
+}
+
+/* Responsive Design */
+@media (max-width: 767px) {
+  .form-textarea {
+    min-height: 70px;
+    padding: 0.6rem 0.7rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .form-textarea {
+    transition: none;
+  }
+}
+
+/* Focus Styles */
+.form-textarea:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .form-textarea {
+    border-width: 2px;
+  }
+}

@@ -1,0 +1,104 @@
+/* Luma Spin Component Styles */
+.luma-spin-container {
+  position: relative;
+  width: 65px;
+  aspect-ratio: 1;
+  display: inline-block;
+}
+
+.luma-spin-ring {
+  position: absolute;
+  border-radius: 50px;
+  box-shadow: inset 0 0 0 3px;
+  animation: luma-spin-animation 2.5s infinite;
+}
+
+.luma-spin-ring-1 {
+  /* Light theme colors */
+  box-shadow: inset 0 0 0 3px #374151;
+}
+
+.luma-spin-ring-2 {
+  /* Light theme colors */
+  box-shadow: inset 0 0 0 3px #374151;
+  animation-delay: -1.25s;
+}
+
+/* Dark theme support */
+[data-bs-theme="dark"] .luma-spin-ring-1,
+.dark .luma-spin-ring-1 {
+  box-shadow: inset 0 0 0 3px #f3f4f6;
+}
+
+[data-bs-theme="dark"] .luma-spin-ring-2,
+.dark .luma-spin-ring-2 {
+  box-shadow: inset 0 0 0 3px #f3f4f6;
+}
+
+/* Custom dark theme support for your app */
+.bg-primary .luma-spin-ring-1,
+.bg-secondary .luma-spin-ring-1 {
+  box-shadow: inset 0 0 0 3px #f3f4f6;
+}
+
+.bg-primary .luma-spin-ring-2,
+.bg-secondary .luma-spin-ring-2 {
+  box-shadow: inset 0 0 0 3px #f3f4f6;
+}
+
+/* Animation keyframes */
+@keyframes luma-spin-animation {
+  0% {
+    inset: 0 35px 35px 0;
+  }
+  12.5% {
+    inset: 0 35px 0 0;
+  }
+  25% {
+    inset: 35px 35px 0 0;
+  }
+  37.5% {
+    inset: 35px 0 0 0;
+  }
+  50% {
+    inset: 35px 0 0 35px;
+  }
+  62.5% {
+    inset: 0 0 0 35px;
+  }
+  75% {
+    inset: 0 0 35px 35px;
+  }
+  87.5% {
+    inset: 0 0 35px 0;
+  }
+  100% {
+    inset: 0 35px 35px 0;
+  }
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+  .luma-spin-container {
+    width: 50px;
+  }
+}
+
+@media (max-width: 480px) {
+  .luma-spin-container {
+    width: 40px;
+  }
+}
+
+/* Size variants */
+.luma-spin-sm {
+  width: 40px;
+}
+
+.luma-spin-lg {
+  width: 80px;
+}
+
+.luma-spin-xl {
+  width: 100px;
+}

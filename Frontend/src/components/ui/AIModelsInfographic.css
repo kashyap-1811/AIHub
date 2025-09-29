@@ -1,0 +1,307 @@
+/* AI Models Infographic Styles */
+
+.ai-models-infographic {
+  padding: 4rem 0;
+  background: #000000;
+  position: relative;
+  overflow: visible;
+  min-height: 100vh;
+}
+
+/* Background stars effect */
+.ai-models-infographic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
+    radial-gradient(2px 2px at 40px 70px, #ffffff, transparent),
+    radial-gradient(1px 1px at 90px 40px, #ffffff, transparent),
+    radial-gradient(1px 1px at 130px 80px, #ffffff, transparent),
+    radial-gradient(2px 2px at 160px 30px, #ffffff, transparent);
+  background-repeat: repeat;
+  background-size: 200px 100px;
+  opacity: 0.1;
+  animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  0% { opacity: 0.1; }
+  100% { opacity: 0.3; }
+}
+
+.ai-models-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 700px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+/* Central Glowing Element */
+.central-element {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.central-icon {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10a37f, #00d4aa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 0 30px rgba(16, 163, 127, 0.5),
+    0 0 60px rgba(16, 163, 127, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.central-icon svg {
+  color: #ffffff;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 
+      0 0 30px rgba(16, 163, 127, 0.5),
+      0 0 60px rgba(16, 163, 127, 0.3),
+      inset 0 0 20px rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 
+      0 0 40px rgba(16, 163, 127, 0.7),
+      0 0 80px rgba(16, 163, 127, 0.4),
+      inset 0 0 25px rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Models Columns */
+.models-column {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  width: 300px;
+}
+
+.left-column {
+  left: 50px;
+  align-items: flex-end;
+}
+
+.right-column {
+  right: 50px;
+  align-items: flex-start;
+}
+
+/* AI Model Cards */
+.ai-model-card {
+  position: relative;
+  background: rgba(33, 37, 41, 0.9);
+  border: 1px solid rgba(16, 163, 127, 0.3);
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 280px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.ai-model-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(16, 163, 127, 0.6);
+  box-shadow: 0 10px 30px rgba(16, 163, 127, 0.2);
+}
+
+.model-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10a37f, #00d4aa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(16, 163, 127, 0.3);
+}
+
+.model-icon img {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+}
+
+.model-content {
+  color: #ffffff;
+}
+
+.model-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.model-role {
+  display: inline-block;
+  background: rgba(16, 163, 127, 0.2);
+  color: #10a37f;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(16, 163, 127, 0.3);
+}
+
+.model-description {
+  font-size: 0.9rem;
+  color: #e0e0e0;
+  line-height: 1.4;
+}
+
+/* Connection Lines */
+.connection-line {
+  position: absolute;
+  top: 50%;
+  width: 100px;
+  height: 4px;
+  background: linear-gradient(90deg, #10a37f, #10a37f);
+  transform: translateY(-50%);
+  opacity: 1;
+  animation: flow 2s ease-in-out infinite;
+  z-index: 5;
+  border-radius: 2px;
+}
+
+.left-line {
+  right: -100px;
+  background: linear-gradient(90deg, #10a37f, #10a37f);
+  box-shadow: 
+    0 0 15px rgba(16, 163, 127, 0.8),
+    0 0 30px rgba(16, 163, 127, 0.4);
+}
+
+.right-line {
+  left: -100px;
+  background: linear-gradient(90deg, #10a37f, #10a37f);
+  box-shadow: 
+    0 0 15px rgba(16, 163, 127, 0.8),
+    0 0 30px rgba(16, 163, 127, 0.4);
+}
+
+@keyframes flow {
+  0%, 100% {
+    opacity: 0.7;
+    transform: translateY(-50%) scaleX(1);
+    box-shadow: 
+      0 0 15px rgba(16, 163, 127, 0.6),
+      0 0 30px rgba(16, 163, 127, 0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scaleX(1.1);
+    box-shadow: 
+      0 0 20px rgba(16, 163, 127, 1),
+      0 0 40px rgba(16, 163, 127, 0.6);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .ai-models-container {
+    flex-direction: column;
+    gap: 3rem;
+    min-height: 800px;
+    padding: 3rem 0;
+  }
+  
+  .models-column {
+    position: relative;
+    transform: none;
+    width: 100%;
+    max-width: 800px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  
+  .left-column,
+  .right-column {
+    left: auto;
+    right: auto;
+    align-items: center;
+  }
+  
+  .ai-model-card {
+    width: 250px;
+  }
+  
+  .connection-line {
+    display: none;
+  }
+  
+  .central-element {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    margin: 2rem 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .ai-models-infographic {
+    padding: 2rem 0;
+  }
+  
+  .models-column {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .ai-model-card {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .central-icon {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .central-icon svg {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .central-icon,
+  .connection-line,
+  .ai-models-infographic::before {
+    animation: none;
+  }
+  
+  .ai-model-card:hover {
+    transform: none;
+  }
+}

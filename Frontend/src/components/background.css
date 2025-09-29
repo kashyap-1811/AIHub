@@ -1,0 +1,87 @@
+.background-container {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.background-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.background-paths-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  color: #ffffff;
+  opacity: 0.6;
+}
+
+.background-paths-wrapper svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gradient-text {
+  display: inline-block;
+  background: linear-gradient(90deg, var(--accent-color), var(--text-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Ensure content is above background */
+.z-1 {
+  z-index: 1;
+}
+
+/* Animation for the paths */
+@keyframes pathAnimation {
+  0% {
+    stroke-dasharray: 0 1000;
+  }
+  100% {
+    stroke-dasharray: 1000 0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .background-paths-wrapper {
+    opacity: 0.3;
+  }
+  
+  .gradient-text {
+    font-size: 0.8em;
+  }
+}
+
+/* Dark theme specific adjustments */
+.background-container {
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+.background-paths-wrapper {
+  color: #ffffff;
+  opacity: 0.4;
+}
+
+/* Subtle animation for the entire background */
+.background-layer {
+  animation: backgroundFloat 30s ease-in-out infinite;
+}
+
+@keyframes backgroundFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(0.5deg);
+  }
+}

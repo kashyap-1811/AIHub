@@ -1,0 +1,259 @@
+/* Feature Steps Component Styles */
+.feature-steps-container {
+  padding: 2rem 1rem;
+}
+
+.feature-steps-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.feature-steps-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.feature-steps-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.feature-steps-list {
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.feature-step-item {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.feature-step-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.feature-step-icon-active {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
+}
+
+.feature-step-icon-inactive {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+.feature-step-check {
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+.feature-step-number {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.feature-step-content {
+  flex: 1;
+}
+
+.feature-step-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.feature-step-description {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.feature-steps-image {
+  order: 1;
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.feature-image-container {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.feature-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.feature-image-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 66.67%;
+  background: linear-gradient(to top, var(--bg-primary) 0%, rgba(33, 37, 41, 0.5) 50%, transparent 100%);
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .feature-steps-container {
+    padding: 3rem 2rem;
+  }
+  
+  .feature-steps-title {
+    font-size: 3rem;
+  }
+  
+  .feature-steps-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+  
+  .feature-steps-list {
+    order: 1;
+  }
+  
+  .feature-steps-image {
+    order: 2;
+    height: 300px;
+  }
+  
+  .feature-step-item {
+    gap: 2rem;
+  }
+  
+  .feature-step-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  
+  .feature-step-title {
+    font-size: 1.5rem;
+  }
+  
+  .feature-step-description {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .feature-steps-image {
+    height: 400px;
+  }
+  
+  .feature-steps-title {
+    font-size: 3.5rem;
+  }
+}
+
+/* Custom height classes */
+.h-400px {
+  height: 400px;
+}
+
+.h-500px {
+  height: 500px;
+}
+
+/* Dark theme specific adjustments */
+.feature-steps-container {
+  background: transparent;
+}
+
+.feature-steps-title {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.feature-step-icon-active {
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
+  border-color: var(--accent-color);
+}
+
+.feature-image-container {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Animation enhancements */
+.feature-step-item {
+  transition: all 0.3s ease;
+}
+
+.feature-step-item:hover {
+  transform: translateX(8px);
+}
+
+.feature-step-icon {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-image {
+  transition: transform 0.5s ease;
+}
+
+.feature-image-container:hover .feature-image {
+  transform: scale(1.05);
+}
+
+/* Focus states for accessibility */
+.feature-step-item:focus-within {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* Loading state */
+.feature-steps-container.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.feature-steps-container.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

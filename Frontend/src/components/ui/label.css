@@ -1,0 +1,45 @@
+/* Label Component Styles - Dark Theme */
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.form-label:has(+ .form-input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Label Variants */
+.form-label-sm {
+  font-size: 0.8rem;
+}
+
+.form-label-lg {
+  font-size: 1rem;
+}
+
+/* Dark Theme Enhancements */
+.form-label {
+  color: var(--text-primary);
+}
+
+.form-label:focus-within {
+  color: var(--accent-color);
+}
+
+/* Responsive Design */
+@media (max-width: 767px) {
+  .form-label {
+    font-size: 0.8rem;
+  }
+}
+
+/* Accessibility */
+.form-label:focus-within {
+  color: var(--accent-color);
+}
