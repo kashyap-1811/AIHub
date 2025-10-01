@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
 import LoginPage from './pages/LoginPage';
@@ -11,88 +11,44 @@ import LandingPage from './pages/LandingPage';
 import LoadingSpinner from './components/LoadingSpinner';
 import { BackgroundPaths } from './components/BackgroundPaths';
 
+// --- Protected / Public Wrappers ---
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
+  if (loading) return <LoadingSpinner />;
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
+  if (loading) return <LoadingSpinner />;
   return !isAuthenticated ? children : <Navigate to="/" />;
 }
+
+// --- Define routes ---
+const routes = [
+  { path: '/', element: <LandingPage /> },
+  { path: '/login', element: <PublicRoute><LoginPage /></PublicRoute> },
+  { path: '/chat', element: <ProtectedRoute><ChatPage /></ProtectedRoute> },
+  { path: '/chat/:sessionId', element: <ProtectedRoute><ChatPage /></ProtectedRoute> },
+  { path: '/profile', element: <ProtectedRoute><ProfilePage /></ProtectedRoute> },
+  { path: '/settings', element: <ProtectedRoute><SettingsPage /></ProtectedRoute> },
+  { path: '/support', element: <ProtectedRoute><SupportPage /></ProtectedRoute> }
+];
+
+// Create the router and enable future flags
+const router = createBrowserRouter(routes, {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true
+});
 
 function AppContent() {
   return (
     <BackgroundPaths>
-      <Router>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={<LandingPage />}
-          />
-          <Route
-            path="/chat"
-            element={
-              <ProtectedRoute>
-                <ChatPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/chat/:sessionId"
-            element={
-              <ProtectedRoute>
-                <ChatPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/support"
-            element={
-              <ProtectedRoute>
-                <SupportPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
+      <RouterProvider router={router} />
     </BackgroundPaths>
   );
 }
+
 
 function App() {
   return (

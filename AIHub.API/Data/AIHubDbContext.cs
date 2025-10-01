@@ -5,9 +5,7 @@ namespace AIHub.API.Data
 {
     public class AIHubDbContext : DbContext
     {
-        public AIHubDbContext(DbContextOptions<AIHubDbContext> options) : base(options)
-        {
-        }
+        public AIHubDbContext(DbContextOptions<AIHubDbContext> options) : base(options){}
 
         public DbSet<User> Users { get; set; }
         public DbSet<ApiKey> ApiKeys { get; set; }
