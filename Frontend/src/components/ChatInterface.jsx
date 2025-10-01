@@ -3,6 +3,7 @@ import { useChat } from '../contexts/ChatContext';
 import { Send, X, Bot, User, Loader2, Trash2 } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 import TextShimmer from './ui/TextShimmer';
+import Toast from './ui/Toast';
 import './ui/TextShimmer.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCopy } from '@fortawesome/free-solid-svg-icons';
@@ -14,6 +15,7 @@ const ChatInterface = ({ session, onClose, onDelete }) => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const handleCopy = (text, id) => {
     if (!text) return;
@@ -101,10 +103,28 @@ const ChatInterface = ({ session, onClose, onDelete }) => {
       const result = await sendMessage(session.id, session.serviceName, messageToSend);
       if (!result.success) {
         console.error('Send message failed:', result.error);
-        // You could show a toast notification here
+        // Show user-friendly error message
+        if (result.error.includes('timeout')) {
+          setToast({
+            message: `${session.serviceName} is taking longer than expected. Your message may have been sent successfully - please refresh to check.`,
+            type: 'warning',
+            duration: 8000
+          });
+        } else {
+          setToast({
+            message: `Failed to send message: ${result.error}`,
+            type: 'error',
+            duration: 5000
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
+      setToast({
+        message: 'An unexpected error occurred while sending the message.',
+        type: 'error',
+        duration: 5000
+      });
     } finally {
       setIsTyping(false);
     }
@@ -240,7 +260,7 @@ const ChatInterface = ({ session, onClose, onDelete }) => {
                     style={{ 
                       width: '32px', 
                       height: '32px',
-                      backgroundColor: message.role === 'user' ? '#667eea' : getServiceColor(message.serviceName),
+                      backgroundColor: message.role === 'user' ? 'rgba(99,102,241,0.9)' : getServiceColor(message.serviceName),
                       fontSize: '14px'
                     }}
                   >
@@ -248,7 +268,10 @@ const ChatInterface = ({ session, onClose, onDelete }) => {
                   </div>
 
                   {/* Message Content */}
-                  <div className={`p-3 rounded ${message.role === 'user' ? 'bg-primary text-white' : 'bg-secondary text-primary text-start'}`}>
+                  <div className={`p-3 rounded ${message.role === 'user' ? 'text-white text-start' : 'bg-secondary text-primary text-start'}`}
+                       style={message.role === 'user' 
+                         ? { background: 'linear-gradient(135deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))' }
+                         : { background: 'rgba(148,163,184,0.12)' }}>
                     {message.role === 'user' ? (
                       <div className="message-content" style={{ whiteSpace: 'pre-wrap' }}>
                         {message.content}
@@ -261,7 +284,7 @@ const ChatInterface = ({ session, onClose, onDelete }) => {
                     )}
                     <div
                       className={`small mt-2 d-flex align-items-center gap-2 position-relative ${
-                        message.role === 'user' ? 'text-white-50' : 'text-muted'
+                        message.role === 'user' ? 'justify-content-end text-white-50' : 'justify-content-start text-muted'
                       }`}
                     >
                       {message.role !== 'user' && (
@@ -353,12 +376,13 @@ const ChatInterface = ({ session, onClose, onDelete }) => {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={`Message ${session.serviceName}...`}
-              rows="1"
+              rows="3"
               disabled={sendingMessage}
               style={{ 
                 resize: 'none',
-                minHeight: '44px',
-                maxHeight: '120px'
+                minHeight: '84px',
+                maxHeight: '240px',
+                overflowY: 'auto'
               }}
             />
           </div>
@@ -367,6 +391,10 @@ const ChatInterface = ({ session, onClose, onDelete }) => {
             className="btn btn-primary d-flex align-items-center justify-content-center"
             disabled={!inputMessage.trim() || sendingMessage}
             style={{ width: '44px', height: '44px' }}
+            title={sendingMessage ? 
+              `${session.serviceName} is thinking...` : 
+              `Send message to ${session.serviceName}`
+            }
           >
             {sendingMessage ? (
               <Loader2 size={16} className="spinner-border-sm" />
@@ -376,6 +404,16 @@ const ChatInterface = ({ session, onClose, onDelete }) => {
           </button>
         </form>
       </div>
+      
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

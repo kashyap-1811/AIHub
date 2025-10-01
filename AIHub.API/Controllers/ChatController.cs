@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using AIHub.API.Services;
 using AIHub.API.Repositories;
 using AIHub.API.Models;
+using AIHub.API.Data;
 
 namespace AIHub.API.Controllers
 {
@@ -15,17 +16,20 @@ namespace AIHub.API.Controllers
         private readonly IMessageRepository _messageRepository;
         private readonly IApiKeyRepository _apiKeyRepository;
         private readonly IContextService _contextService;
+        private readonly AIHubDbContext _context;
 
         public ChatController(
             IChatSessionRepository chatSessionRepository,
             IMessageRepository messageRepository,
             IApiKeyRepository apiKeyRepository,
-            IContextService contextService)
+            IContextService contextService,
+            AIHubDbContext context)
         {
             _chatSessionRepository = chatSessionRepository;
             _messageRepository = messageRepository;
             _apiKeyRepository = apiKeyRepository;
             _contextService = contextService;
+            _context = context;
         }
 
         [HttpGet("sessions")]
@@ -122,149 +126,160 @@ namespace AIHub.API.Controllers
             try
             {
                 var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
-                var session = await _chatSessionRepository.GetByIdAsync(id);
                 
+                // Get session first
+                var session = await _chatSessionRepository.GetByIdAsync(id);
                 if (session == null || session.UserId != userId)
                 {
                     return NotFound(new { message = "Chat session not found" });
                 }
 
-                // Save user message
-                var userMessage = new Message
-                {
-                    ChatSessionId = id,
-                    ServiceName = request.ServiceName,
-                    Content = request.Message,
-                    Role = "user"
-                };
-                await _messageRepository.CreateAsync(userMessage);
-
-                // Get recent messages for context
-                var recentMessages = (await _messageRepository.GetByChatSessionIdAsync(id))
-                    .OrderBy(m => m.CreatedAt)
-                    .TakeLast(15)
-                    .ToList();
-
-                // Update context summary
-                await _contextService.UpdateContextSummaryAsync(id, recentMessages);
-
-                // Get context summary for AI
-                var contextSummary = await _contextService.GetContextSummaryAsync(id);
-
-                // Get API key for the service (optional)
-                var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, request.ServiceName);
-                string response;
+                // Use simple transaction for the one operation that needs it
+                using var transaction = await _context.Database.BeginTransactionAsync();
                 
-                if (apiKey == null)
+                try
                 {
-                    // No API key - return a mock response
-                    response = $"I'm {request.ServiceName}, but I need an API key to respond. Please add your {request.ServiceName} API key in Settings to start chatting!";
-                }
-                else
-                {
-                    // API key exists - use it
-                    var plainTextKey = apiKey.EncryptedKey; // No decryption needed
-                    
-                    // Get AI service and send message with context
-                    var aiService = GetAIService(request.ServiceName);
-                    if (aiService == null)
+                    // 1. Save user message
+                    var userMessage = new Message
                     {
-                        return BadRequest(new { message = "Invalid service name" });
-                    }
+                        ChatSessionId = id,
+                        ServiceName = request.ServiceName,
+                        Content = request.Message,
+                        Role = "user"
+                    };
+                    await _messageRepository.CreateAsync(userMessage);
 
-                    // Prepare message with context
-                    var messageWithContext = string.IsNullOrEmpty(contextSummary) 
-                        ? request.Message 
-                        : $"{contextSummary}\n\nUser: {request.Message}";
+                    // 2. Get recent messages for context
+                    var recentMessages = (await _messageRepository.GetByChatSessionIdAsync(id))
+                        .OrderBy(m => m.CreatedAt)
+                        .TakeLast(15)
+                        .ToList();
 
-                    response = await aiService.SendMessageAsync(messageWithContext, plainTextKey);
-                }
+                    // 3. Update context summary
+                    await _contextService.UpdateContextSummaryAsync(id, recentMessages);
 
-                // Save AI response
-                var aiMessage = new Message
-                {
-                    ChatSessionId = id,
-                    ServiceName = request.ServiceName,
-                    Content = response,
-                    Role = "assistant"
-                };
-                await _messageRepository.CreateAsync(aiMessage);
+                    // 4. Get context summary for AI
+                    var contextSummary = await _contextService.GetContextSummaryAsync(id);
 
-                // Update session timestamp
-                session.UpdatedAt = DateTime.UtcNow;
-                await _chatSessionRepository.UpdateAsync(session);
-
-                return Ok(new
-                {
-                    UserMessage = new
-                    {
-                        userMessage.Id,
-                        userMessage.ServiceName,
-                        userMessage.Content,
-                        userMessage.Role,
-                        userMessage.CreatedAt
-                    },
-                    AIMessage = new
-                    {
-                        aiMessage.Id,
-                        aiMessage.ServiceName,
-                        aiMessage.Content,
-                        aiMessage.Role,
-                        aiMessage.CreatedAt
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-            }
-        }
-
-        [HttpPost("broadcast")]
-        public async Task<IActionResult> BroadcastMessage([FromBody] BroadcastMessageRequest request)
-        {
-            try
-            {
-                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
-                var responses = new List<object>();
-
-                foreach (var serviceName in request.ServiceNames)
-                {
-                    // Get API key for the service (optional)
-                    var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, serviceName);
+                    // 5. Get API key and call AI service
+                    var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, request.ServiceName);
                     string response;
                     
                     if (apiKey == null)
                     {
-                        // No API key - return a mock response
-                        response = $"I'm {serviceName}, but I need an API key to respond. Please add your {serviceName} API key in Settings to start chatting!";
+                        response = $"I'm {request.ServiceName}, but I need an API key to respond. Please add your {request.ServiceName} API key in Settings to start chatting!";
                     }
                     else
                     {
-                        // API key exists - use it
-                        var plainTextKey = apiKey.EncryptedKey; // No decryption needed
-                        
-                        // Get AI service and send message
-                        var aiService = GetAIService(serviceName);
+                        var aiService = GetAIService(request.ServiceName);
                         if (aiService == null)
                         {
-                            responses.Add(new { ServiceName = serviceName, Error = "Invalid service" });
-                            continue;
+                            return BadRequest(new { message = "Invalid service name" });
                         }
 
-                        response = await aiService.SendMessageAsync(request.Message, plainTextKey);
-                    }
-                    
-                    responses.Add(new { ServiceName = serviceName, Response = response });
-                }
+                        var messageWithContext = string.IsNullOrEmpty(contextSummary) 
+                            ? request.Message 
+                            : $"{contextSummary}\n\nUser: {request.Message}";
 
-                return Ok(responses);
+                        // Cast to UnifiedAIService to use the overloaded method
+                        var unifiedService = (UnifiedAIService)aiService;
+                        response = await unifiedService.SendMessageAsync(messageWithContext, apiKey.EncryptedKey, request.ServiceName);
+                    }
+
+                    // 6. Save AI response
+                    var aiMessage = new Message
+                    {
+                        ChatSessionId = id,
+                        ServiceName = request.ServiceName,
+                        Content = response,
+                        Role = "assistant"
+                    };
+                    await _messageRepository.CreateAsync(aiMessage);
+
+                    // 7. Update session timestamp
+                    session.UpdatedAt = DateTime.UtcNow;
+                    await _chatSessionRepository.UpdateAsync(session);
+
+                    // 8. Commit transaction
+                    await transaction.CommitAsync();
+
+                    return Ok(new
+                    {
+                        UserMessage = new
+                        {
+                            userMessage.Id,
+                            userMessage.ServiceName,
+                            userMessage.Content,
+                            userMessage.Role,
+                            userMessage.CreatedAt
+                        },
+                        AIMessage = new
+                        {
+                            aiMessage.Id,
+                            aiMessage.ServiceName,
+                            aiMessage.Content,
+                            aiMessage.Role,
+                            aiMessage.CreatedAt
+                        }
+                    });
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
+        // [HttpPost("broadcast")]
+        // public async Task<IActionResult> BroadcastMessage([FromBody] BroadcastMessageRequest request)
+        // {
+        //     try
+        //     {
+        //         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
+        //         var responses = new List<object>();
+
+        //         foreach (var serviceName in request.ServiceNames)
+        //         {
+        //             // Get API key for the service (optional)
+        //             var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, serviceName);
+        //             string response;
+                    
+        //             if (apiKey == null)
+        //             {
+        //                 // No API key - return a mock response
+        //                 response = $"I'm {serviceName}, but I need an API key to respond. Please add your {serviceName} API key in Settings to start chatting!";
+        //             }
+        //             else
+        //             {
+        //                 // API key exists - use it
+        //                 var plainTextKey = apiKey.EncryptedKey; // No decryption needed
+                        
+        //                 // Get AI service and send message
+        //                 var aiService = GetAIService(serviceName);
+        //                 if (aiService == null)
+        //                 {
+        //                     responses.Add(new { ServiceName = serviceName, Error = "Invalid service" });
+        //                     continue;
+        //                 }
+
+        //                 response = await aiService.SendMessageAsync(request.Message, plainTextKey);
+        //             }
+                    
+        //             responses.Add(new { ServiceName = serviceName, Response = response });
+        //         }
+
+        //         return Ok(responses);
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         return StatusCode(500, new { message = ex.Message });
+        //     }
+        // }
 
         [HttpDelete("sessions/{id}")]
         public async Task<IActionResult> DeleteChatSession(string id)
@@ -290,14 +305,7 @@ namespace AIHub.API.Controllers
 
         private IAIService? GetAIService(string serviceName)
         {
-            return serviceName switch
-            {
-                "ChatGPT" => HttpContext.RequestServices.GetService<ChatGPTService>(),
-                "Gemini" => HttpContext.RequestServices.GetService<GeminiService>(),
-                "Claude" => HttpContext.RequestServices.GetService<ClaudeService>(),
-                "DeepSeek" => HttpContext.RequestServices.GetService<DeepSeekService>(),
-                _ => null
-            };
+            return HttpContext.RequestServices.GetService<UnifiedAIService>();
         }
     }
 

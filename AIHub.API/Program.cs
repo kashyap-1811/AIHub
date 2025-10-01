@@ -30,14 +30,16 @@ builder.Services.AddScoped<IContextSummaryRepository, ContextSummaryRepository>(
 
 // Services
 builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<ChatGPTService>();
-builder.Services.AddScoped<GeminiService>();
+builder.Services.AddScoped<UnifiedAIService>();
 builder.Services.AddScoped<IContextService, ContextService>();
-builder.Services.AddScoped<ClaudeService>();
-builder.Services.AddScoped<DeepSeekService>();
 
-// HTTP Client
-builder.Services.AddHttpClient();
+
+// HTTP Client with timeout configuration
+builder.Services.AddHttpClient("Default", client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(3); // 3 minutes timeout for AI services
+});
+builder.Services.AddHttpClient(); // Keep default for other services
 
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";

@@ -188,9 +188,18 @@ export const ChatProvider = ({ children }) => {
   // Enhanced error handling utility
   const handleError = useCallback((error, operation = 'Operation') => {
     console.error(`${operation} failed:`, error);
-    const errorMessage = error.response?.data?.message || 
-                        error.message || 
-                        `${operation} failed. Please try again.`;
+    
+    let errorMessage;
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      errorMessage = `${operation} timed out. The AI service is taking longer than expected. Please check if your message was received by refreshing the page.`;
+    } else if (error.response?.status === 500) {
+      errorMessage = `${operation} failed due to a server error. Please try again in a moment.`;
+    } else {
+      errorMessage = error.response?.data?.message || 
+                    error.message || 
+                    `${operation} failed. Please try again.`;
+    }
+    
     dispatch({ type: 'SET_ERROR', payload: errorMessage });
     return errorMessage;
   }, []);
@@ -279,8 +288,8 @@ export const ChatProvider = ({ children }) => {
     }
   }, [handleError]);
 
-  // Send message
-  const sendMessage = useCallback(async (sessionId, serviceName, message) => {
+  // Send message with retry mechanism
+  const sendMessage = useCallback(async (sessionId, serviceName, message, retryCount = 0) => {
     if (!sessionId || !message?.trim()) {
       const error = 'Session ID and message are required';
       dispatch({ type: 'SET_ERROR', payload: error });
@@ -336,17 +345,33 @@ export const ChatProvider = ({ children }) => {
     } catch (error) {
       if (error.name === 'AbortError') return { success: false, aborted: true };
       
+      // Check if it's a timeout error and we can retry
+      const isTimeoutError = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+      const canRetry = retryCount < 1 && isTimeoutError;
+      
+      if (canRetry) {
+        console.log(`Retrying message send (attempt ${retryCount + 1})`);
+        // Wait 2 seconds before retry
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return sendMessage(sessionId, serviceName, message, retryCount + 1);
+      }
+      
       // Mark user message as failed
       dispatch({
         type: 'UPDATE_MESSAGE',
         payload: {
           sessionId,
           messageId: userMessage.id,
-          updates: { pending: false, error: true }
+          updates: { 
+            pending: false, 
+            error: true,
+            errorMessage: isTimeoutError ? 'Request timed out' : 'Failed to send'
+          }
         }
       });
       
       const errorMessage = handleError(error, 'Sending message');
+      dispatch({ type: 'SET_SENDING_MESSAGE', payload: false });
       return { success: false, error: errorMessage };
     }
   }, [handleError]);

@@ -1,3 +1,6 @@
+# ===========================================
+# .NET / C# BUILD OUTPUT
+# ===========================================
 # Build results
 bin/
 obj/
@@ -8,41 +11,97 @@ obj/
 *.userosscache
 *.sln.docstates
 
-# Visual Studio Code settings
+# ===========================================
+# IDE & EDITOR FILES
+# ===========================================
+# Visual Studio
+.vs/
 .vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 
-# Logs
+# JetBrains Rider
+.idea/
+
+# ===========================================
+# LOGS
+# ===========================================
+# Application logs
 *.log
 
-# OS generated files
+# ===========================================
+# OS GENERATED FILES
+# ===========================================
+# macOS
 .DS_Store
-Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===========================================
+# PACKAGE MANAGEMENT
+# ===========================================
 # NuGet packages
 *.nupkg
 packages/
 *.snupkg
 
+# ===========================================
+# PUBLISH & DEPLOYMENT
+# ===========================================
 # Publish output
 publish/
 out/
 
-# ASP.NET specific
+# ===========================================
+# CONFIGURATION FILES
+# ===========================================
+# ASP.NET Core specific
 appsettings.Development.json
 appsettings.Local.json
 appsettings.*.json
+!appsettings.json
 
-# Entity Framework
-Migrations/
+# ===========================================
+# ENTITY FRAMEWORK
+# ===========================================
+# Keep migrations for schema tracking
+# Migrations/
 
-# Rider IDE
-.idea/
-
+# ===========================================
+# TESTING
+# ===========================================
 # Test results
 TestResults/
 *.trx
 
-# Others
+# ===========================================
+# DATABASE
+# ===========================================
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ===========================================
+# TEMPORARY & BACKUP FILES
+# ===========================================
+# Temporary files
 *.swp
-*.bak
+*.swo
+*~
 *.tmp
+*.temp
+
+# Backup files
+*.backup
+*.bak

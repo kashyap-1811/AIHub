@@ -146,14 +146,7 @@ namespace AIHub.API.Controllers
         }
 
         private IAIService? GetAIService(string serviceName) =>
-            serviceName switch
-            {
-                "ChatGPT" => _serviceProvider.GetService<ChatGPTService>(),
-                "Gemini" => _serviceProvider.GetService<GeminiService>(),
-                "Claude" => _serviceProvider.GetService<ClaudeService>(),
-                "DeepSeek" => _serviceProvider.GetService<DeepSeekService>(),
-                _ => null
-            };
+            _serviceProvider.GetService<UnifiedAIService>();
     }
 
     public class SaveApiKeyRequest
