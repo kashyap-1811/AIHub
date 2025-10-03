@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using BCrypt.Net;
 using AIHub.API.Models;
 using AIHub.API.Repositories;
 
