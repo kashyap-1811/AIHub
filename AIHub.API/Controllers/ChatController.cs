@@ -139,11 +139,18 @@ namespace AIHub.API.Controllers
                 
                 try
                 {
+                    // Derive service from session
+                    var serviceName = await _chatSessionRepository.GetServiceNameByIdAsync(id);
+                    if (string.IsNullOrWhiteSpace(serviceName))
+                    {
+                        return BadRequest(new { message = "Chat session has no associated service" });
+                    }
+
                     // 1. Save user message
                     var userMessage = new Message
                     {
                         ChatSessionId = id,
-                        ServiceName = request.ServiceName,
+                        ServiceName = serviceName,
                         Content = request.Message,
                         Role = "user"
                     };
@@ -162,16 +169,16 @@ namespace AIHub.API.Controllers
                     var contextSummary = await _contextService.GetContextSummaryAsync(id);
 
                     // 5. Get API key and call AI service
-                    var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, request.ServiceName);
+                    var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, serviceName);
                     string response;
                     
                     if (apiKey == null)
                     {
-                        response = $"I'm {request.ServiceName}, but I need an API key to respond. Please add your {request.ServiceName} API key in Settings to start chatting!";
+                        response = $"I'm {serviceName}, but I need an API key to respond. Please add your {serviceName} API key in Settings to start chatting!";
                     }
                     else
                     {
-                        var aiService = GetAIService(request.ServiceName);
+                        var aiService = GetAIService(serviceName);
                         if (aiService == null)
                         {
                             return BadRequest(new { message = "Invalid service name" });
@@ -183,14 +190,14 @@ namespace AIHub.API.Controllers
 
                         // Cast to UnifiedAIService to use the overloaded method
                         var unifiedService = (UnifiedAIService)aiService;
-                        response = await unifiedService.SendMessageAsync(messageWithContext, apiKey.EncryptedKey, request.ServiceName);
+                        response = await unifiedService.SendMessageAsync(messageWithContext, apiKey.EncryptedKey, serviceName);
                     }
 
                     // 6. Save AI response
                     var aiMessage = new Message
                     {
                         ChatSessionId = id,
-                        ServiceName = request.ServiceName,
+                        ServiceName = serviceName,
                         Content = response,
                         Role = "assistant"
                     };

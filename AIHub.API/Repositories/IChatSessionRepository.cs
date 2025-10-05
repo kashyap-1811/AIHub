@@ -9,5 +9,6 @@ namespace AIHub.API.Repositories
         Task<ChatSession> CreateAsync(ChatSession chatSession);
         Task<ChatSession> UpdateAsync(ChatSession chatSession);
         Task DeleteAsync(string id);
+        Task<string?> GetServiceNameByIdAsync(string chatSessionId);
     }
 }

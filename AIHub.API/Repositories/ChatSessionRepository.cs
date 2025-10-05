@@ -52,5 +52,13 @@ namespace AIHub.API.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task<string?> GetServiceNameByIdAsync(string chatSessionId)
+        {
+            var session = await _context.ChatSessions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cs => cs.Id == chatSessionId);
+            return session?.ServiceName;
+        }
     }
 }

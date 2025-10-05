@@ -80,7 +80,7 @@ export const chatAPI = {
     
     return apiWithTimeout.post(`/api/chat/sessions/${sessionId}/messages`, messageData);
   },
-  broadcastMessage: (messageData) => api.post('/api/chat/broadcast', messageData),
+  // broadcastMessage: (messageData) => api.post('/api/chat/broadcast', messageData),
   deleteChatSession: (sessionId) => api.delete(`/api/chat/sessions/${sessionId}`),
 };
 

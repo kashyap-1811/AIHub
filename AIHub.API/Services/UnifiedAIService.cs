@@ -20,8 +20,8 @@ namespace AIHub.API.Services
         private static readonly Dictionary<string, (string ModelName, int MaxTokens, double Temperature)> ModelConfigs = new()
         {
             ["ChatGPT"] = ("openai/gpt-oss-20b:free", 1000, 0.7),
-            ["Gemini"] = ("google/gemini-2.0-flash-exp:free", 1000, 0.7),
-            ["Claude"] = ("anthropic/claude-3-sonnet", 1000, 0.7),
+            ["Gemini"] = ("google/gemini-2.5-flash", 1000, 0.7),
+            ["Claude"] = ("anthropic/claude-sonnet-4", 1000, 0.7),
             ["DeepSeek"] = ("deepseek/deepseek-chat-v3.1:free", 1000, 0.7)
         };
 
@@ -30,10 +30,9 @@ namespace AIHub.API.Services
             _httpClient = httpClientFactory.CreateClient("Default");
         }
 
-        public async Task<string> SendMessageAsync(string message, string apiKey, string? conversationId = null)
+        public async Task<string> SendMessageAsync(string message, string apiKey, string serviceName)
         {
             // Extract service name from conversationId or use default
-            var serviceName = ExtractServiceName(conversationId) ?? "ChatGPT";
             var config = ModelConfigs[serviceName];
 
             try
@@ -98,13 +97,6 @@ namespace AIHub.API.Services
                 Console.WriteLine($"ValidateApiKeyAsync exception: {ex.Message}");
                 return false;
             }
-        }
-
-        private string? ExtractServiceName(string? conversationId)
-        {
-            // This could be enhanced to extract service name from conversationId
-            // For now, we'll rely on the controller to pass the correct service name
-            return null;
         }
 
         // Method to send message with specific service configuration
