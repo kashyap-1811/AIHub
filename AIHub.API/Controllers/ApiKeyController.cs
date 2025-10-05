@@ -13,11 +13,13 @@ namespace AIHub.API.Controllers
     {
         private readonly IApiKeyRepository _apiKeyRepository;
         private readonly IServiceProvider _serviceProvider;
+        private readonly EncryptionService _encryptionService;
 
-        public ApiKeyController(IApiKeyRepository apiKeyRepository, IServiceProvider serviceProvider)
+        public ApiKeyController(IApiKeyRepository apiKeyRepository, IServiceProvider serviceProvider, EncryptionService encryptionService)
         {
             _apiKeyRepository = apiKeyRepository;
             _serviceProvider = serviceProvider;
+            _encryptionService = encryptionService;
         }
 
         private string? GetUserId()
@@ -38,7 +40,7 @@ namespace AIHub.API.Controllers
             {
                 ak.Id,
                 ak.ServiceName,
-                ApiKey = ak.EncryptedKey, // ⚠️ consider hiding in production
+                ApiKey = ak.EncryptedKey, // encrypted at rest; consider hiding value in production
                 HasKey = !string.IsNullOrEmpty(ak.EncryptedKey),
                 ak.CreatedAt,
                 ak.UpdatedAt
@@ -63,7 +65,7 @@ namespace AIHub.API.Controllers
 
             if (existingApiKey != null)
             {
-                existingApiKey.EncryptedKey = request.ApiKey; // ⚠️ still plain text
+                existingApiKey.EncryptedKey = _encryptionService.Encrypt(request.ApiKey);
                 existingApiKey.UpdatedAt = DateTime.UtcNow;
                 await _apiKeyRepository.UpdateAsync(existingApiKey);
             }
@@ -73,7 +75,7 @@ namespace AIHub.API.Controllers
                 {
                     UserId = userId,
                     ServiceName = request.ServiceName,
-                    EncryptedKey = request.ApiKey, // ⚠️ still plain text
+                    EncryptedKey = _encryptionService.Encrypt(request.ApiKey),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -111,7 +113,8 @@ namespace AIHub.API.Controllers
             if (aiService == null)
                 return BadRequest(new { message = "Invalid service name" });
 
-            var isValid = await aiService.ValidateApiKeyAsync(apiKey.EncryptedKey);
+            var plainKey = _encryptionService.Decrypt(apiKey.EncryptedKey);
+            var isValid = await aiService.ValidateApiKeyAsync(plainKey);
             return Ok(new { isValid });
         }
 

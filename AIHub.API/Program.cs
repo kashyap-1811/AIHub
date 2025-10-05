@@ -32,6 +32,7 @@ builder.Services.AddScoped<IContextSummaryRepository, ContextSummaryRepository>(
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UnifiedAIService>();
 builder.Services.AddScoped<IContextService, ContextService>();
+builder.Services.AddScoped<EncryptionService>();
 
 
 // HTTP Client with timeout configuration

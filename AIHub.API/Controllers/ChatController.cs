@@ -17,19 +17,22 @@ namespace AIHub.API.Controllers
         private readonly IApiKeyRepository _apiKeyRepository;
         private readonly IContextService _contextService;
         private readonly AIHubDbContext _context;
+        private readonly EncryptionService _encryptionService;
 
         public ChatController(
             IChatSessionRepository chatSessionRepository,
             IMessageRepository messageRepository,
             IApiKeyRepository apiKeyRepository,
             IContextService contextService,
-            AIHubDbContext context)
+            AIHubDbContext context,
+            EncryptionService encryptionService)
         {
             _chatSessionRepository = chatSessionRepository;
             _messageRepository = messageRepository;
             _apiKeyRepository = apiKeyRepository;
             _contextService = contextService;
             _context = context;
+            _encryptionService = encryptionService;
         }
 
         [HttpGet("sessions")]
@@ -190,7 +193,8 @@ namespace AIHub.API.Controllers
 
                         // Cast to UnifiedAIService to use the overloaded method
                         var unifiedService = (UnifiedAIService)aiService;
-                        response = await unifiedService.SendMessageAsync(messageWithContext, apiKey.EncryptedKey, serviceName);
+                        var plainKey = _encryptionService.Decrypt(apiKey.EncryptedKey);
+                        response = await unifiedService.SendMessageAsync(messageWithContext, plainKey, serviceName);
                     }
 
                     // 6. Save AI response
