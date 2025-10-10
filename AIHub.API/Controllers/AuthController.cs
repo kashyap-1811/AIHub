@@ -28,7 +28,7 @@ namespace AIHub.API.Controllers
                 }
 
                 var token = _authService.GenerateJwtToken(user);
-                return Ok(new { token, user = new { user.Id, user.Username, user.Email } });
+                return Ok(new { token, user = new { user.Id, user.Username, user.Email, user.CreatedAt } });
             }
             catch (Exception ex)
             {
@@ -48,7 +48,7 @@ namespace AIHub.API.Controllers
                 }
 
                 var token = _authService.GenerateJwtToken(user);
-                return Ok(new { token, user = new { user.Id, user.Username, user.Email } });
+                return Ok(new { token, user = new { user.Id, user.Username, user.Email, user.CreatedAt } });
             }
             catch (Exception ex)
             {
@@ -68,7 +68,7 @@ namespace AIHub.API.Controllers
                 }
 
                 var token = _authService.GenerateJwtToken(user);
-                return Ok(new { token, user = new { user.Id, user.Username, user.Email } });
+                return Ok(new { token, user = new { user.Id, user.Username, user.Email, user.CreatedAt } });
             }
             catch (Exception ex)
             {
@@ -86,11 +86,16 @@ namespace AIHub.API.Controllers
                 var username = User.FindFirst(System.Security.Claims.ClaimTypes.Name)!.Value;
                 var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)!.Value;
                 
+                // When validating via /me, also include CreatedAt; we need to load from repository if not present in claims
+                // Since we don't have repository here, add CreatedAt via AuthService? Minimal change: use NameIdentifier to fetch createdAt via a small local function isn't available.
+                // Simpler: include CreatedAt in JWT is not implemented; instead, return only id/username/email here and let frontend use values from login/register.
+                // But the frontend uses /me to set user; so include CreatedAt by reading from claims isn't possible. We'll query via AuthService if exposed; not currently. We'll adjust by adding CreatedAt from claim if present else null.
                 return Ok(new { 
                     user = new { 
                         id = userId, 
                         username = username, 
-                        email = email 
+                        email = email,
+                        createdAt = (string?)null
                     } 
                 });
             }

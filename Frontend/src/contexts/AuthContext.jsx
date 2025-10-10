@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.getCurrentUser(token); // backend validation
       if (response.data?.user) {
-        const user = decodeUser(token);
+        const user = response.data.user;
         dispatch({ type: 'LOGIN_SUCCESS', payload: { token, user } });
         return true;
       }
@@ -96,12 +96,11 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: 'CLEAR_ERROR' });
 
       const response = await authAPI.login(credentials);
-      const { token } = response.data;
+      const { token, user } = response.data;
 
       if (!token) throw new Error('Invalid server response');
 
       setTokenInStorage(token);
-      const user = decodeUser(token);
       dispatch({ type: 'LOGIN_SUCCESS', payload: { token, user } });
       return { success: true };
     } catch (error) {
@@ -118,12 +117,11 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: 'CLEAR_ERROR' });
 
       const response = await authAPI.register(userData);
-      const { token } = response.data;
+      const { token, user } = response.data;
 
       if (!token) throw new Error('Invalid server response');
 
       setTokenInStorage(token);
-      const user = decodeUser(token);
       dispatch({ type: 'LOGIN_SUCCESS', payload: { token, user } });
       return { success: true };
     } catch (error) {

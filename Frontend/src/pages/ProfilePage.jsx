@@ -133,43 +133,6 @@ const ProfilePage = () => {
                           <p className="mb-0 text-white">{user?.email || 'Not provided'}</p>
                         </div>
                       </div>
-
-                      <div className="col-md-6">
-                        <div className="p-3 bg-tertiary rounded" style={{ 
-                          borderRadius: '12px',
-                          border: '1px solid var(--border-color)'
-                        }}>
-                          <div className="d-flex align-items-center mb-2">
-                            <Calendar size={18} className="text-primary me-2" />
-                            <label className="form-label fw-semibold text-primary mb-0">
-                              Member Since
-                            </label>
-                          </div>
-                          <p className="mb-0 text-white">
-                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="col-md-6">
-                        <div className="p-3 bg-tertiary rounded" style={{ 
-                          borderRadius: '12px',
-                          border: '1px solid var(--border-color)'
-                        }}>
-                          <div className="d-flex align-items-center mb-2">
-                            <Shield size={18} className="text-primary me-2" />
-                            <label className="form-label fw-semibold text-primary mb-0">
-                              Account Status
-                            </label>
-                          </div>
-                          <span className="badge bg-success" style={{ 
-                            borderRadius: '6px',
-                            padding: '6px 12px'
-                          }}>
-                            Active
-                          </span>
-                        </div>
-                      </div>
                     </div>
 
                     {/* Action Buttons */}
