@@ -246,52 +246,6 @@ namespace AIHub.API.Controllers
             }
         }
 
-        // [HttpPost("broadcast")]
-        // public async Task<IActionResult> BroadcastMessage([FromBody] BroadcastMessageRequest request)
-        // {
-        //     try
-        //     {
-        //         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
-        //         var responses = new List<object>();
-
-        //         foreach (var serviceName in request.ServiceNames)
-        //         {
-        //             // Get API key for the service (optional)
-        //             var apiKey = await _apiKeyRepository.GetByUserAndServiceAsync(userId, serviceName);
-        //             string response;
-                    
-        //             if (apiKey == null)
-        //             {
-        //                 // No API key - return a mock response
-        //                 response = $"I'm {serviceName}, but I need an API key to respond. Please add your {serviceName} API key in Settings to start chatting!";
-        //             }
-        //             else
-        //             {
-        //                 // API key exists - use it
-        //                 var plainTextKey = apiKey.EncryptedKey; // No decryption needed
-                        
-        //                 // Get AI service and send message
-        //                 var aiService = GetAIService(serviceName);
-        //                 if (aiService == null)
-        //                 {
-        //                     responses.Add(new { ServiceName = serviceName, Error = "Invalid service" });
-        //                     continue;
-        //                 }
-
-        //                 response = await aiService.SendMessageAsync(request.Message, plainTextKey);
-        //             }
-                    
-        //             responses.Add(new { ServiceName = serviceName, Response = response });
-        //         }
-
-        //         return Ok(responses);
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         return StatusCode(500, new { message = ex.Message });
-        //     }
-        // }
-
         [HttpDelete("sessions/{id}")]
         public async Task<IActionResult> DeleteChatSession(string id)
         {

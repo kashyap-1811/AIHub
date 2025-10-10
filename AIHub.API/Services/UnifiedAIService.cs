@@ -19,9 +19,9 @@ namespace AIHub.API.Services
         // Model configurations for different AI services
         private static readonly Dictionary<string, (string ModelName, int MaxTokens, double Temperature)> ModelConfigs = new()
         {
-            ["ChatGPT"] = ("openai/gpt-oss-20b:free", 131000, 0.7),
-            ["Gemini"] = ("google/gemini-2.0-flash-exp:free", 3000, 0.7),
-            ["Claude"] = ("anthropic/claude-sonnet-4", 65536, 0.7),
+            ["ChatGPT"] = ("openai/gpt-oss-20b:free", 1000, 0.7),
+            ["Gemini"] = ("google/gemini-2.5-flash", 1000, 0.7),
+            ["Claude"] = ("anthropic/claude-sonnet-4", 1000, 0.7),
             ["DeepSeek"] = ("deepseek/deepseek-chat-v3.1:free", 1000, 0.7)  
         };
 
