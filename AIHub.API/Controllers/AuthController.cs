@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using AIHub.API.Services;
 using AIHub.API.Models;
+using AIHub.API.Repositories;
 
 namespace AIHub.API.Controllers
 {
@@ -10,10 +11,12 @@ namespace AIHub.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AuthService _authService;
+        private readonly IUserRepository _userRepository;
 
-        public AuthController(AuthService authService)
+        public AuthController(AuthService authService, IUserRepository userRepository)
         {
             _authService = authService;
+            _userRepository = userRepository;
         }
 
         [HttpPost("register")]
@@ -78,25 +81,24 @@ namespace AIHub.API.Controllers
 
         [HttpGet("me")]
         [Authorize]
-        public IActionResult GetCurrentUser()
+        public async Task<IActionResult> GetCurrentUser()
         {
             try
             {
                 var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
-                var username = User.FindFirst(System.Security.Claims.ClaimTypes.Name)!.Value;
-                var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)!.Value;
-                
-                // When validating via /me, also include CreatedAt; we need to load from repository if not present in claims
-                // Since we don't have repository here, add CreatedAt via AuthService? Minimal change: use NameIdentifier to fetch createdAt via a small local function isn't available.
-                // Simpler: include CreatedAt in JWT is not implemented; instead, return only id/username/email here and let frontend use values from login/register.
-                // But the frontend uses /me to set user; so include CreatedAt by reading from claims isn't possible. We'll query via AuthService if exposed; not currently. We'll adjust by adding CreatedAt from claim if present else null.
-                return Ok(new { 
-                    user = new { 
-                        id = userId, 
-                        username = username, 
-                        email = email,
-                        createdAt = (string?)null
-                    } 
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                return Ok(new {
+                    user = new {
+                        id = user.Id,
+                        username = user.Username,
+                        email = user.Email,
+                        createdAt = user.CreatedAt
+                    }
                 });
             }
             catch (Exception ex)
